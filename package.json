@@ -1,6 +1,10 @@
 {
-  "name": "@libs",
+  "name": "@libs/core",
   "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sb24-tv/libs.git"
+  },
   "description": "",
   "main": "dist/index.js",
   "scripts": {
