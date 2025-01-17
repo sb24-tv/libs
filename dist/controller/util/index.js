@@ -1,9 +1,21 @@
-import path from 'path';
-import { DECORATOR_KEY } from "../constant/decorator-key";
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.importClassesFromDirectories = importClassesFromDirectories;
+exports.HttpMethod = HttpMethod;
+exports.handleDecorators = handleDecorators;
+exports.prepareController = prepareController;
+exports.isInterceptor = isInterceptor;
+exports.isInterceptorError = isInterceptorError;
+exports.isMiddleware = isMiddleware;
+const path_1 = __importDefault(require("path"));
+const decorator_key_1 = require("../constant/decorator-key");
 /**
  * Loads all exported classes from the given directory.
  */
-export function importClassesFromDirectories(directories, formats = ['.js', '.ts', '.tsx']) {
+function importClassesFromDirectories(directories, formats = ['.js', '.ts', '.tsx']) {
     const loadFileClasses = function (exported, allLoaded) {
         if (exported instanceof Function) {
             allLoaded.push(exported);
@@ -18,32 +30,32 @@ export function importClassesFromDirectories(directories, formats = ['.js', '.ts
     };
     const allFiles = directories.reduce((allDirs, dir) => {
         // Replace \ with / for glob
-        return allDirs.concat(require('glob').sync(path.normalize(dir).replace(/\\/g, '/')));
+        return allDirs.concat(require('glob').sync(path_1.default.normalize(dir).replace(/\\/g, '/')));
     }, []);
     const dirs = allFiles
         .filter(file => {
         const dtsExtension = file.substring(file.length - 5, file.length);
-        return formats.indexOf(path.extname(file)) !== -1 && dtsExtension !== '.d.ts';
+        return formats.indexOf(path_1.default.extname(file)) !== -1 && dtsExtension !== '.d.ts';
     })
         .map(file => {
         return require(file);
     });
     return loadFileClasses(dirs, []);
 }
-export function HttpMethod(method, path) {
+function HttpMethod(method, path) {
     return (target, propertyKey) => {
-        Reflect.defineMetadata(DECORATOR_KEY.METHOD, method, target, propertyKey);
-        Reflect.defineMetadata(DECORATOR_KEY.ROUTE_PATH, path, target, propertyKey);
+        Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.METHOD, method, target, propertyKey);
+        Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.ROUTE_PATH, path, target, propertyKey);
     };
 }
-export function handleDecorators(params, callBack) {
+function handleDecorators(params, callBack) {
     const { controllerInstance, methodName, request, response, next } = params;
     const method = controllerInstance[methodName];
-    const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
-    const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, controllerInstance, methodName) || [];
-    const resIndex = Reflect.getMetadata(DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
-    const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, controllerInstance, methodName);
-    const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
+    const paramsMeta = Reflect.getMetadata(decorator_key_1.DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
+    const queryMeta = Reflect.getMetadata(decorator_key_1.DECORATOR_KEY.QUERY, controllerInstance, methodName) || [];
+    const resIndex = Reflect.getMetadata(decorator_key_1.DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
+    const reqIndex = Reflect.getMetadata(decorator_key_1.DECORATOR_KEY.REQUEST, controllerInstance, methodName);
+    const reqBodyIndex = Reflect.getMetadata(decorator_key_1.DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
     const args = [];
     // Handle @Param
     paramsMeta.forEach(({ param, parameterIndex }) => {
@@ -77,7 +89,7 @@ export function handleDecorators(params, callBack) {
         method.apply(controllerInstance, args);
     }
 }
-export function prepareController(controllers) {
+function prepareController(controllers) {
     let controllerClasses = [];
     if (controllers && controllers.length) {
         controllerClasses = controllers.filter(controller => controller instanceof Function);
@@ -86,13 +98,13 @@ export function prepareController(controllers) {
     }
     return controllerClasses;
 }
-export function isInterceptor(obj) {
+function isInterceptor(obj) {
     return typeof obj.intercept === 'function';
 }
-export function isInterceptorError(obj) {
+function isInterceptorError(obj) {
     return typeof obj.catch === 'function';
 }
-export function isMiddleware(obj) {
+function isMiddleware(obj) {
     return typeof obj.use === 'function';
 }
 //# sourceMappingURL=index.js.map

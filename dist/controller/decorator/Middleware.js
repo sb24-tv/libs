@@ -1,7 +1,10 @@
-import { DECORATOR_KEY } from "../constant/decorator-key";
-export function Middleware(options) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Middleware = Middleware;
+const decorator_key_1 = require("../constant/decorator-key");
+function Middleware(options) {
     return function (target) {
-        Reflect.defineMetadata(DECORATOR_KEY.MIDDLEWARE, options, target);
+        Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.MIDDLEWARE, options, target);
     };
 }
 //# sourceMappingURL=Middleware.js.map

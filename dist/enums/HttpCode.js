@@ -1,4 +1,7 @@
-export var HttpStatusCode;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.HttpStatusCode = void 0;
+var HttpStatusCode;
 (function (HttpStatusCode) {
     // Create
     HttpStatusCode[HttpStatusCode["CREATED"] = 201] = "CREATED";
@@ -13,5 +16,5 @@ export var HttpStatusCode;
     HttpStatusCode[HttpStatusCode["UNAUTHORIZED"] = 401] = "UNAUTHORIZED";
     HttpStatusCode[HttpStatusCode["FORBIDDEN"] = 403] = "FORBIDDEN";
     HttpStatusCode[HttpStatusCode["INTERNAL_SERVER_ERROR"] = 500] = "INTERNAL_SERVER_ERROR";
-})(HttpStatusCode || (HttpStatusCode = {}));
+})(HttpStatusCode || (exports.HttpStatusCode = HttpStatusCode = {}));
 //# sourceMappingURL=HttpCode.js.map

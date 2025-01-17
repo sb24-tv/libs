@@ -1,3 +1,6 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DECORATOR_KEY = void 0;
 const DECORATOR_KEY = {
     CONTROLLER_PATH: Symbol('CONTROLLER_PATH'),
     PARAM: Symbol('PARAM'),
@@ -13,5 +16,5 @@ const DECORATOR_KEY = {
     BEFORE_INTERCEPTOR: Symbol('BEFORE_INTERCEPTOR'),
     AFTER_INTERCEPTOR: Symbol('AFTER_INTERCEPTOR'),
 };
-export { DECORATOR_KEY };
+exports.DECORATOR_KEY = DECORATOR_KEY;
 //# sourceMappingURL=decorator-key.js.map

@@ -1,3 +1,6 @@
-export function AccessControl() {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AccessControl = AccessControl;
+function AccessControl() {
 }
 //# sourceMappingURL=AccessControl.js.map
