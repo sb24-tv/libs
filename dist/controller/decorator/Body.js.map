@@ -1,0 +1,1 @@
+{"version":3,"file":"Body.js","sourceRoot":"","sources":["../../../src/controller/decorator/Body.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,MAAM,2BAA2B,CAAC;AAG1D,MAAM,UAAU,IAAI;IACnB,OAAO,UAAU,MAAW,EAAE,WAA4B,EAAE,cAAsB;QACjF,OAAO,CAAC,cAAc,CAAC,aAAa,CAAC,YAAY,EAAE,cAAc,EAAE,MAAM,EAAE,WAAW,CAAC,CAAC;IACzF,CAAC,CAAC;AACH,CAAC"}

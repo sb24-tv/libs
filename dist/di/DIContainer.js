@@ -1,6 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.container = void 0;
 class DIContainer {
     constructor() {
         this.services = new Map(); // Maps classes to their implementations
@@ -35,4 +32,5 @@ class DIContainer {
     }
 }
 // Get the singleton instance of the DIContainer
-exports.container = DIContainer.getInstance();
+export const container = DIContainer.getInstance();
+//# sourceMappingURL=DIContainer.js.map

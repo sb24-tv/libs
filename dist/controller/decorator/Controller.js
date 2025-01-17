@@ -1,9 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Controller = Controller;
-const decorator_key_1 = require("../constant/decorator-key");
-function Controller(basePath) {
+import { DECORATOR_KEY } from "../constant/decorator-key";
+export function Controller(basePath) {
     return function (target) {
-        Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.CONTROLLER_PATH, basePath, target);
+        Reflect.defineMetadata(DECORATOR_KEY.CONTROLLER_PATH, basePath, target);
     };
 }
+//# sourceMappingURL=Controller.js.map

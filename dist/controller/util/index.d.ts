@@ -18,3 +18,4 @@ export declare function isInterceptor(obj: Interceptor): obj is Interceptor;
 export declare function isInterceptorError(obj: ErrorInterceptor): obj is ErrorInterceptor;
 export declare function isMiddleware(obj: CoreMiddleware): obj is CoreMiddleware;
 export {};
+//# sourceMappingURL=index.d.ts.map

@@ -14,3 +14,4 @@ export interface ErrorInterceptor {
 export interface CoreMiddleware {
     use(req: Request, res: Response, next: NextFunction): void;
 }
+//# sourceMappingURL=index.d.ts.map

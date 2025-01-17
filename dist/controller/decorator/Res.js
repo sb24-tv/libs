@@ -1,9 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Res = Res;
-const decorator_key_1 = require("../constant/decorator-key");
-function Res() {
+import { DECORATOR_KEY } from "../constant/decorator-key";
+export function Res() {
     return function (target, propertyKey, parameterIndex) {
-        Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.RESPONSE, parameterIndex, target, propertyKey);
+        Reflect.defineMetadata(DECORATOR_KEY.RESPONSE, parameterIndex, target, propertyKey);
     };
 }
+//# sourceMappingURL=Res.js.map

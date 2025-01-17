@@ -9,3 +9,4 @@ export declare enum HttpStatusCode {
     FORBIDDEN = 403,
     INTERNAL_SERVER_ERROR = 500
 }
+//# sourceMappingURL=HttpCode.d.ts.map

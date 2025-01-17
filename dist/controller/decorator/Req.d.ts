@@ -1,1 +1,2 @@
 export declare function Req(): (target: any, propertyKey: string, parameterIndex: number) => void;
+//# sourceMappingURL=Req.d.ts.map

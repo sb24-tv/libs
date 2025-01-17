@@ -1,0 +1,1 @@
+{"version":3,"file":"Res.js","sourceRoot":"","sources":["../../../src/controller/decorator/Res.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,MAAM,2BAA2B,CAAC;AAE1D,MAAM,UAAU,GAAG;IAClB,OAAO,UAAU,MAAW,EAAE,WAA4B,EAAE,cAAsB;QACjF,OAAO,CAAC,cAAc,CAAC,aAAa,CAAC,QAAQ,EAAE,cAAc,EAAE,MAAM,EAAE,WAAW,CAAC,CAAC;IACrF,CAAC,CAAC;AACH,CAAC"}
