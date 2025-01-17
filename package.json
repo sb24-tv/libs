@@ -1,14 +1,13 @@
 {
   "name": "@libs/core",
   "version": "1.0.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/sb24-tv/libs.git"
-  },
-  "description": "",
+  "description": "Core library",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
@@ -18,5 +17,6 @@
   "private": true,
   "dependencies": {
     "reflect-metadata": "^0.2.2"
-  }
+  },
+  "files": ["dist"]
 }
