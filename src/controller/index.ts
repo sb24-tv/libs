@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import { HttpMethod } from "./util";
 export * from './decorator/Controller';
 

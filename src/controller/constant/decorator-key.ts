@@ -7,6 +7,7 @@ const DECORATOR_KEY =  {
     RESPONSE: Symbol('RESPONSE'),
     REQUEST: Symbol('REQUEST'),
     REQUEST_BODY: Symbol('REQUEST_BODY'),
+    REQUEST_BODY_TYPE: Symbol('REQUEST_BODY_TYPE'),
     QUERY: Symbol('QUERY'),
     MIDDLEWARE: Symbol('MIDDLEWARE'),
     INTERCEPTOR: Symbol('INTERCEPTOR'),

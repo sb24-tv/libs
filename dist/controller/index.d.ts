@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 export * from './decorator/Controller';
 export * from './decorator/Res';
 export * from './decorator/Req';
