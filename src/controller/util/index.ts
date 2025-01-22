@@ -2,6 +2,7 @@ import path from 'path';
 import { NextFunction, Request, Response } from 'express';
 import { DECORATOR_KEY } from "../constant/decorator-key";
 import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../interface";
+import { validate,ValidationError } from "class-validator";
 
 type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 
@@ -47,20 +48,22 @@ export function HttpMethod(method: HttpMethod, path?: string): MethodDecorator {
 
 export function handleDecorators(
 	params: {
-		controllerInstance: any,
-		methodName: string,
-		request: Request,
-		response: Response,
-		next: NextFunction
-	},callBack:(data: any) => void)
-{
+		controllerInstance: any;
+		methodName: string;
+		request: Request;
+		response: Response;
+		next: NextFunction;
+	},
+	callBack: (data: any) => void,
+	validator: (errors: ValidationError[]) => void
+) {
 	
 	const {
 		controllerInstance,
 		methodName,
 		request,
 		response,
-        next
+		next
 	} = params;
 	
 	const method = controllerInstance[methodName];
@@ -69,7 +72,7 @@ export function handleDecorators(
 	const resIndex = Reflect.getMetadata(DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
 	const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, controllerInstance, methodName);
 	const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
-
+	
 	const args: any[] = [];
 	
 	// Handle @Param
@@ -82,11 +85,6 @@ export function handleDecorators(
 		args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
 	});
 	
-	// Handle @Body
-	if (reqBodyIndex !== undefined) {
-		args[reqBodyIndex] = request.body;
-	}
-	
 	// Handle @Res
 	if (resIndex !== undefined) {
 		args[resIndex] = response;
@@ -96,14 +94,37 @@ export function handleDecorators(
 		args[reqIndex] = request;
 	}
 	
+	// Handle @Body
+	if (reqBodyIndex !== undefined) {
+		const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
+		
+		if(ResBodyType) {
+			const validation = new ResBodyType();
+			
+			for (const key in request.body) {
+				validation[key] = request.body[key];
+			}
+			
+			validate(validation).then(errors => {
+				if (errors.length > 0) {
+					validator(errors);
+				}
+			});
+		}
+		
+		args[reqBodyIndex] = request.body;
+	}
+	
 	try {
 		const result = controllerInstance[methodName](...args);
+		// check method is promise
 		if (result instanceof Promise) {
 			result.then(callBack).catch(next);
 		} else if (result !== undefined) {
 			callBack(result)
 		}
 	} catch (error) {
+		// apply default response
 		method.apply(controllerInstance, args);
 	}
 }

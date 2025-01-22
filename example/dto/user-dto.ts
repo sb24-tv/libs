@@ -3,7 +3,7 @@ import { IsNumber, IsString } from 'class-validator';
 export  class UserDto {
     
     @IsString()
-    name?: string;
+    name?: string
   
     @IsNumber()
     phone?: number;

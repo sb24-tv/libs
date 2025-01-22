@@ -32,6 +32,15 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -41,6 +50,8 @@ const express_1 = __importStar(require("express"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const controller_1 = require("../../controller");
 const AppContext_1 = __importDefault(require("./AppContext"));
+const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 class CoreApplication {
     constructor(options) {
         this.options = options;
@@ -104,19 +115,55 @@ class CoreApplication {
                 const method = Reflect.getMetadata(controller_1.DECORATOR_KEY.METHOD, prototype, methodName);
                 if (typeof controllerInstance[methodName] === "function" && method) {
                     // @ts-ignore
-                    router[method](route, (request, response, next) => {
-                        (0, controller_1.handleDecorators)({
-                            controllerInstance,
-                            methodName,
-                            response,
-                            request,
-                            next,
-                        }, (data) => {
-                            if (data !== undefined && data !== response) {
-                                this.appContext.sendJsonResponse(data);
-                            }
+                    router[method](route, (request, response, next) => __awaiter(this, void 0, void 0, function* () {
+                        const method = controllerInstance[methodName];
+                        const paramsMeta = Reflect.getMetadata(controller_1.DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
+                        const queryMeta = Reflect.getMetadata(controller_1.DECORATOR_KEY.QUERY, controllerInstance, methodName) || [];
+                        const resIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
+                        const reqIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST, controllerInstance, methodName);
+                        const reqBodyIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
+                        const args = [];
+                        // Handle @Param
+                        paramsMeta.forEach(({ param, parameterIndex }) => {
+                            args[parameterIndex] = param ? request.params[param] : request.params;
                         });
-                    });
+                        // Handle @Query
+                        queryMeta.forEach(({ queryKey, queryIndex }) => {
+                            args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
+                        });
+                        // Handle @Res
+                        if (resIndex !== undefined) {
+                            args[resIndex] = response;
+                        }
+                        // Handle @Request
+                        if (reqIndex !== undefined) {
+                            args[reqIndex] = request;
+                        }
+                        // Handle @Body
+                        if (reqBodyIndex !== undefined) {
+                            const ResBodyType = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
+                            if (ResBodyType) {
+                                const instance = (0, class_transformer_1.plainToInstance)(ResBodyType, request.body);
+                                const errors = yield (0, class_validator_1.validate)(instance);
+                                if (errors.length > 0) {
+                                    return next(new Error(errors.toString()));
+                                }
+                            }
+                            args[reqBodyIndex] = request.body;
+                        }
+                        const result = controllerInstance[methodName](...args);
+                        // check method is promise
+                        if (result instanceof Promise) {
+                            result.then(this.appContext.sendJsonResponse).catch(next);
+                        }
+                        else if (result !== undefined) {
+                            this.appContext.sendJsonResponse(result);
+                        }
+                        else {
+                            // apply default response
+                            method.apply(controllerInstance, args);
+                        }
+                    }));
                     console.log(`\x1b[32m[Route] ${basePath + route} [Method] ${method.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`);
                 }
             }

@@ -6,7 +6,9 @@ function Body() {
     return function (target, propertyKey, parameterIndex) {
         Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.REQUEST_BODY, parameterIndex, target, propertyKey);
         const paramTypes = Reflect.getMetadata("design:paramtypes", target, propertyKey);
-        Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.REQUEST_BODY_TYPE, paramTypes[parameterIndex], target);
+        if (![String, Number, Boolean, Object, Function].includes(paramTypes[parameterIndex])) {
+            Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.REQUEST_BODY_TYPE, paramTypes[parameterIndex], target, propertyKey);
+        }
     };
 }
 //# sourceMappingURL=Body.js.map

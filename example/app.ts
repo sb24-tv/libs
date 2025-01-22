@@ -1,7 +1,18 @@
 import 'reflect-metadata';
 import path from "path";
-import { ServerFactory } from "../src";
-
+import { Action, ErrorInterceptor, Injectable, ServerFactory } from "../src";
+@Injectable()
+export class GlobalErrorInterceptor implements ErrorInterceptor  {
+	catch({error}: Action) {
+		const status = error.statusCode || 500;
+		console.error(`[Error] ${error.message}`,error.stack);
+		return {
+			status,
+			message: error.message || 'Internal Server Error',
+			details: error.stack
+		};
+	}
+}
 const app = ServerFactory.createServer({
 	controllers: [
 		path.join(__dirname, './controllers/**/*.{js,ts}'),
@@ -13,6 +24,8 @@ app.setBodyParserOptions({
 		extended: false,
 	}
 });
+
+app.useGlobalInterceptors(GlobalErrorInterceptor);
 
 const PORT = 3100;
 app.listen(PORT, () => {

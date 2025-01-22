@@ -1,7 +1,5 @@
-
 import { Body, Controller, Get, Post } from "../../../src";
 import { UserDto } from "../../dto/user-dto";
-
 
 @Controller('/role')
 export class RoleController {
@@ -12,7 +10,7 @@ export class RoleController {
     }
     
     @Post()
-    create(@Body() body: UserDto){
+    create(@Body() body: UserDto) {
         return body;
     }
 }

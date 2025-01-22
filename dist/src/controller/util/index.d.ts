@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../interface";
+import { ValidationError } from "class-validator";
 type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 /**
  * Loads all exported classes from the given directory.
@@ -12,7 +13,7 @@ export declare function handleDecorators(params: {
     request: Request;
     response: Response;
     next: NextFunction;
-}, callBack: (data: any) => void): void;
+}, callBack: (data: any) => void, validator: (errors: ValidationError[]) => void): void;
 export declare function prepareController(controllers: Function[] | string[]): Function[];
 export declare function isInterceptor(obj: Interceptor): obj is Interceptor;
 export declare function isInterceptorError(obj: ErrorInterceptor): obj is ErrorInterceptor;

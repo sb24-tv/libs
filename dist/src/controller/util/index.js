@@ -12,6 +12,7 @@ exports.isInterceptorError = isInterceptorError;
 exports.isMiddleware = isMiddleware;
 const path_1 = __importDefault(require("path"));
 const decorator_key_1 = require("../constant/decorator-key");
+const class_validator_1 = require("class-validator");
 /**
  * Loads all exported classes from the given directory.
  */
@@ -48,7 +49,7 @@ function HttpMethod(method, path) {
         Reflect.defineMetadata(decorator_key_1.DECORATOR_KEY.ROUTE_PATH, path, target, propertyKey);
     };
 }
-function handleDecorators(params, callBack) {
+function handleDecorators(params, callBack, validator) {
     const { controllerInstance, methodName, request, response, next } = params;
     const method = controllerInstance[methodName];
     const paramsMeta = Reflect.getMetadata(decorator_key_1.DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
@@ -65,10 +66,6 @@ function handleDecorators(params, callBack) {
     queryMeta.forEach(({ queryKey, queryIndex }) => {
         args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
     });
-    // Handle @Body
-    if (reqBodyIndex !== undefined) {
-        args[reqBodyIndex] = request.body;
-    }
     // Handle @Res
     if (resIndex !== undefined) {
         args[resIndex] = response;
@@ -76,8 +73,25 @@ function handleDecorators(params, callBack) {
     if (reqIndex !== undefined) {
         args[reqIndex] = request;
     }
+    // Handle @Body
+    if (reqBodyIndex !== undefined) {
+        const ResBodyType = Reflect.getMetadata(decorator_key_1.DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
+        if (ResBodyType) {
+            const validation = new ResBodyType();
+            for (const key in request.body) {
+                validation[key] = request.body[key];
+            }
+            (0, class_validator_1.validate)(validation).then(errors => {
+                if (errors.length > 0) {
+                    validator(errors);
+                }
+            });
+        }
+        args[reqBodyIndex] = request.body;
+    }
     try {
         const result = controllerInstance[methodName](...args);
+        // check method is promise
         if (result instanceof Promise) {
             result.then(callBack).catch(next);
         }
@@ -86,6 +100,7 @@ function handleDecorators(params, callBack) {
         }
     }
     catch (error) {
+        // apply default response
         method.apply(controllerInstance, args);
     }
 }
