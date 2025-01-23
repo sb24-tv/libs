@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",  // Set root directory to the project root
+    "outDir": "./dist",
+    "noEmit": false,
+    "incremental": true
+  },
+  "include": ["src", "example"],  // Include both directories
+}

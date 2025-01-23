@@ -2,6 +2,9 @@
   "compilerOptions": {
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./",
     "declaration": true,
     "module": "CommonJS",
     "moduleResolution": "Node",
@@ -9,5 +12,6 @@
     "strict": true,
     "esModuleInterop": true
   },
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist","example"]
 }

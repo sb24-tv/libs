@@ -6,9 +6,9 @@
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build:prod": "tsc --project tsconfig.prod.json",
     "prepublishOnly": "npm run build",
-    "dev": "concurrently \"npx tsc --watch\" \"nodemon\""
+    "dev": "concurrently \"npx tsc --watch --project tsconfig.dev.json\" \"nodemon\""
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
