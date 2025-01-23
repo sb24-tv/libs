@@ -9,7 +9,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GlobalErrorInterceptor = void 0;
 require("reflect-metadata");
 const path_1 = __importDefault(require("path"));
 const src_1 = require("../src");
@@ -17,15 +16,22 @@ let GlobalErrorInterceptor = class GlobalErrorInterceptor {
     catch({ error }) {
         const status = error.statusCode || 500;
         console.error(`[Error] ${error.message}`, error.stack);
+        console.error('detail', error.details);
+        const filteredStack = error.stack
+            ? error.stack
+                .split('\n')
+                .filter((line) => !line.includes('node_modules')) // Remove node_modules paths
+                .join('\n')
+            : '';
         return {
             status,
             message: error.message || 'Internal Server Error',
-            details: error.stack
+            stack: filteredStack,
+            details: Array.isArray(error.details) ? error.details.map(function (detail) { return detail; }) : error.details
         };
     }
 };
-exports.GlobalErrorInterceptor = GlobalErrorInterceptor;
-exports.GlobalErrorInterceptor = GlobalErrorInterceptor = __decorate([
+GlobalErrorInterceptor = __decorate([
     (0, src_1.Injectable)()
 ], GlobalErrorInterceptor);
 const app = src_1.ServerFactory.createServer({

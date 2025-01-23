@@ -52,6 +52,7 @@ const controller_1 = require("../../controller");
 const AppContext_1 = __importDefault(require("./AppContext"));
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const http_error_exception_1 = require("../../http-error-exception");
 class CoreApplication {
     constructor(options) {
         this.options = options;
@@ -146,7 +147,9 @@ class CoreApplication {
                                 const instance = (0, class_transformer_1.plainToInstance)(ResBodyType, request.body);
                                 const errors = yield (0, class_validator_1.validate)(instance);
                                 if (errors.length > 0) {
-                                    return next(new Error(errors.toString()));
+                                    const error = new http_error_exception_1.HttpError('Validation Error', 403, errors);
+                                    error.stack = errors.toString();
+                                    return next(error);
                                 }
                             }
                             args[reqBodyIndex] = request.body;

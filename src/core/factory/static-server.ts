@@ -23,7 +23,7 @@ import {
 
 import AppContext from "./AppContext";
 import { serverOptions } from "./index";
-import { validate, ValidationError } from "class-validator";
+import { validate } from "class-validator";
 import { plainToInstance } from "class-transformer";
 import { HttpError } from "../../http-error-exception";
 
@@ -140,9 +140,10 @@ export class CoreApplication {
 								if (ResBodyType) {
 									const instance = plainToInstance(ResBodyType, request.body);
 									const errors = await validate(instance);
-									
 									if (errors.length > 0) {
-										return next(new Error(errors.toString()));
+										const error = new HttpError('Validation Error',403,errors);
+										error.stack = errors.toString();
+ 										return next(error);
 									}
 								}
 								
