@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from "../../../src";
+import { Body, Controller, Get, Post } from "@libs/core";
 import { UserDto } from "../../dto/user-dto";
 
 @Controller('/role')

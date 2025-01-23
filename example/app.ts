@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import path from "path";
-import { Action, ErrorInterceptor, Injectable, ServerFactory } from "../src";
+import { Action, ErrorInterceptor, Injectable, ServerFactory } from "@libs/core";
 
 @Injectable()
 class GlobalErrorInterceptor implements ErrorInterceptor  {
