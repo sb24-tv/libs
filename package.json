@@ -20,13 +20,11 @@
     "nodemon": "^3.1.9",
     "reflect-metadata": "^0.2.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "class-transformer": "^0.5.1"
   },
   "private": true,
   "files": [
     "dist"
-  ],
-  "dependencies": {
-    "class-transformer": "^0.5.1"
-  }
+  ]
 }
