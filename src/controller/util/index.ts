@@ -2,7 +2,9 @@ import path from 'path';
 import { NextFunction, Request, Response } from 'express';
 import { DECORATOR_KEY } from "../constant/decorator-key";
 import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../interface";
-import { validate,ValidationError } from "class-validator";
+import { validate } from "class-validator";
+import { plainToInstance } from "class-transformer";
+import { HttpError } from "../../http-error-exception";
 
 type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 
@@ -46,7 +48,7 @@ export function HttpMethod(method: HttpMethod, path?: string): MethodDecorator {
 	};
 }
 
-export function handleDecorators(
+export async function handleDecorators(
 	params: {
 		controllerInstance: any;
 		methodName: string;
@@ -54,8 +56,7 @@ export function handleDecorators(
 		response: Response;
 		next: NextFunction;
 	},
-	callBack: (data: any) => void,
-	validator: (errors: ValidationError[]) => void
+	callBack: (data: any) => void
 ) {
 	
 	const {
@@ -76,12 +77,12 @@ export function handleDecorators(
 	const args: any[] = [];
 	
 	// Handle @Param
-	paramsMeta.forEach(({ param, parameterIndex }: { param: string, parameterIndex: number }) => {
+	paramsMeta.forEach(({param, parameterIndex}: { param: string, parameterIndex: number }) => {
 		args[parameterIndex] = param ? request.params[param] : request.params;
 	});
 	
 	// Handle @Query
-	queryMeta.forEach(({ queryKey, queryIndex }: { queryKey: string, queryIndex: number }) => {
+	queryMeta.forEach(({queryKey, queryIndex}: { queryKey: string, queryIndex: number }) => {
 		args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
 	});
 	
@@ -90,7 +91,7 @@ export function handleDecorators(
 		args[resIndex] = response;
 	}
 	
-	if(reqIndex !== undefined) {
+	if (reqIndex !== undefined) {
 		args[reqIndex] = request;
 	}
 	
@@ -98,18 +99,15 @@ export function handleDecorators(
 	if (reqBodyIndex !== undefined) {
 		const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
 		
-		if(ResBodyType) {
-			const validation = new ResBodyType();
+		if (ResBodyType) {
+			const instance = plainToInstance(ResBodyType, request.body);
+			const errors = await validate(instance);
 			
-			for (const key in request.body) {
-				validation[key] = request.body[key];
+			if (errors.length > 0) {
+				const error = new HttpError("Validation Error", 403, errors);
+				error.stack = errors.toString();
+				return next();
 			}
-			
-			validate(validation).then(errors => {
-				if (errors.length > 0) {
-					validator(errors);
-				}
-			});
 		}
 		
 		args[reqBodyIndex] = request.body;
