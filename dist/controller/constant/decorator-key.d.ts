@@ -1,5 +1,6 @@
 declare const DECORATOR_KEY: {
     readonly CONTROLLER_PATH: symbol;
+    readonly CONTROLLER: symbol;
     readonly PARAM: symbol;
     readonly ACTION: symbol;
     readonly METHOD: symbol;

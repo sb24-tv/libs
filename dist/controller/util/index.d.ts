@@ -1,4 +1,3 @@
-import { NextFunction, Request, Response } from 'express';
 import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../interface";
 type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 /**
@@ -6,13 +5,6 @@ type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
  */
 export declare function importClassesFromDirectories(directories: string[], formats?: string[]): Function[];
 export declare function HttpMethod(method: HttpMethod, path?: string): MethodDecorator;
-export declare function handleDecorators(params: {
-    controllerInstance: any;
-    methodName: string;
-    request: Request;
-    response: Response;
-    next: NextFunction;
-}, callBack: (data: any) => void): Promise<void>;
 export declare function prepareController(controllers: Function[] | string[]): Function[];
 export declare function isInterceptor(obj: Interceptor): obj is Interceptor;
 export declare function isInterceptorError(obj: ErrorInterceptor): obj is ErrorInterceptor;
