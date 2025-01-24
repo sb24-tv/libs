@@ -20,7 +20,10 @@ import {
 	isMiddleware,
 	prepareController
 } from "../../controller";
-
+import {
+	CorsOptions,
+	CorsOptionsDelegate
+} from "cors";
 import AppContext from "./AppContext";
 import { serverOptions } from "./index";
 import { validate } from "class-validator";
@@ -28,7 +31,10 @@ import { plainToInstance } from "class-transformer";
 import { HttpError } from "../../http-error-exception";
 
 export class CoreApplication {
+
 	public server = express();
+
+	private corsOptions: CorsOptions | CorsOptionsDelegate = {}
 	private controllerClasses: Function[] = prepareController(this.options.controllers);
 	private interceptorsBefore: Interceptor[] = [];
 	private interceptorsAfter: Interceptor[] = [];
@@ -46,6 +52,10 @@ export class CoreApplication {
 				this.middlewares.push(middleware);
 			}
 		});
+	}
+
+	public enableCors(options: CorsOptions | CorsOptionsDelegate) {
+		this.corsOptions = options;
 	}
 	
 	public useGlobalInterceptors(...interceptors: any[]) {
@@ -260,6 +270,10 @@ export class CoreApplication {
 	}
 	
 	listen(port: number | string, callback: () => void){
+		const cors = require("cors");
+		if(cors) {
+			this.server.use(cors(this.corsOptions))
+		}
 		this.executeMiddleware();
 		this.executeInterceptorBefore();
 		this.registerController(this.controllerClasses,this.providers)

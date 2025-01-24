@@ -47,6 +47,11 @@ const app = ServerFactory.createServer({
     ]
 });
 
+app.enableCors({
+	credentials: true,
+	origin: '*'
+});
+
 app.setBodyParserOptions({
 	urlencoded: {
 		extended: false,
