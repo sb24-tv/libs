@@ -1,10 +1,6 @@
 import path from 'path';
-import { NextFunction, Request, Response } from 'express';
 import { DECORATOR_KEY } from "../constant/decorator-key";
 import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../interface";
-import { validate } from "class-validator";
-import { plainToInstance } from "class-transformer";
-import { HttpError } from "../../http-error-exception";
 
 type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 
@@ -48,84 +44,6 @@ export function HttpMethod(method: HttpMethod, path?: string): MethodDecorator {
 	};
 }
 
-export async function handleDecorators(
-	params: {
-		controllerInstance: any;
-		methodName: string;
-		request: Request;
-		response: Response;
-		next: NextFunction;
-	},
-	callBack: (data: any) => void
-) {
-	
-	const {
-		controllerInstance,
-		methodName,
-		request,
-		response,
-		next
-	} = params;
-	
-	const method = controllerInstance[methodName];
-	const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
-	const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, controllerInstance, methodName) || [];
-	const resIndex = Reflect.getMetadata(DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
-	const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, controllerInstance, methodName);
-	const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
-	
-	const args: any[] = [];
-	
-	// Handle @Param
-	paramsMeta.forEach(({param, parameterIndex}: { param: string, parameterIndex: number }) => {
-		args[parameterIndex] = param ? request.params[param] : request.params;
-	});
-	
-	// Handle @Query
-	queryMeta.forEach(({queryKey, queryIndex}: { queryKey: string, queryIndex: number }) => {
-		args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
-	});
-	
-	// Handle @Res
-	if (resIndex !== undefined) {
-		args[resIndex] = response;
-	}
-	
-	if (reqIndex !== undefined) {
-		args[reqIndex] = request;
-	}
-	
-	// Handle @Body
-	if (reqBodyIndex !== undefined) {
-		const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
-		
-		if (ResBodyType) {
-			const instance = plainToInstance(ResBodyType, request.body);
-			const errors = await validate(instance);
-			
-			if (errors.length > 0) {
-				const error = new HttpError("Validation Error", 403, errors);
-				error.stack = errors.toString();
-				return next();
-			}
-		}
-		
-		args[reqBodyIndex] = request.body;
-	}
-	
-	try {
-		const result = controllerInstance[methodName](...args);
-		// check method is promise
-		if (result instanceof Promise) {
-			result.then(callBack).catch(next);
-		} else if (result !== undefined) {
-			callBack(result)
-		}
-	} catch (error) {
-		// apply default response
-		method.apply(controllerInstance, args);
-	}
-}
 
 export function prepareController(controllers: Function[] | string[]) {
 	let controllerClasses: Function[] = [];

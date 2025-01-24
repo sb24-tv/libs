@@ -1,5 +1,6 @@
 const DECORATOR_KEY =  {
     CONTROLLER_PATH: Symbol('CONTROLLER_PATH'),
+    CONTROLLER: Symbol('CONTROLLER'),
     PARAM: Symbol('PARAM'),
     ACTION: Symbol('ACTION'),
     METHOD: Symbol('METHOD'),
@@ -13,7 +14,6 @@ const DECORATOR_KEY =  {
     INTERCEPTOR: Symbol('INTERCEPTOR'),
     BEFORE_INTERCEPTOR: Symbol('BEFORE_INTERCEPTOR'),
     AFTER_INTERCEPTOR:  Symbol('AFTER_INTERCEPTOR'),
-    
 } as const;
 
 export {

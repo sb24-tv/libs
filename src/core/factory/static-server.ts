@@ -37,8 +37,7 @@ export class CoreApplication {
 	private providers: Function[] | undefined = this.options.providers;
 	private appContext: AppContext = new AppContext();
 	
-	constructor(private options: serverOptions) {
-	}
+	constructor(private options: serverOptions) {}
 	
 	public useGlobalMiddleware(...middlewares: any[]) {
 		middlewares.forEach((instance) => {
@@ -86,6 +85,9 @@ export class CoreApplication {
 			const prototype = Object.getPrototypeOf(controllerInstance);
 			const methods = Object.getOwnPropertyNames(prototype);
 			const basePath = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER_PATH, ControllerClass);
+			const isController = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER, ControllerClass);
+			
+			if (isController !== DECORATOR_KEY.CONTROLLER) continue;
 			
 			if (!basePath) {
 				console.warn(
@@ -105,61 +107,66 @@ export class CoreApplication {
 					router[method](
 						route,
 						async (request: Request, response: Response, next: NextFunction) => {
-							const method = controllerInstance[methodName];
-							const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
-							const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, controllerInstance, methodName) || [];
-							const resIndex = Reflect.getMetadata(DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
-							const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, controllerInstance, methodName);
-							const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
-							
-							const args: any[] = [];
-							
-							// Handle @Param
-							paramsMeta.forEach(({param, parameterIndex}: { param: string, parameterIndex: number }) => {
-								args[parameterIndex] = param ? request.params[param] : request.params;
-							});
-							
-							// Handle @Query
-							queryMeta.forEach(({queryKey, queryIndex}: { queryKey: string, queryIndex: number }) => {
-								args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
-							});
-							
-							// Handle @Res
-							if (resIndex !== undefined) {
-								args[resIndex] = response;
-							}
-							// Handle @Request
-							if (reqIndex !== undefined) {
-								args[reqIndex] = request;
-							}
-							
-							// Handle @Body
-							if (reqBodyIndex !== undefined) {
-								const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
+							try {
+								const method = controllerInstance[methodName];
+								const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
+								const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, controllerInstance, methodName) || [];
+								const resIndex = Reflect.getMetadata(DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
+								const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, controllerInstance, methodName);
+								const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
 								
-								if (ResBodyType) {
-									const instance = plainToInstance(ResBodyType, request.body);
-									const errors = await validate(instance);
-									if (errors.length > 0) {
-										const error = new HttpError('Validation Error',403,errors);
-										error.stack = errors.toString();
- 										return next(error);
-									}
+								const args: any[] = [];
+								
+								// Handle @Param
+								paramsMeta.forEach(({param, parameterIndex}: { param: string, parameterIndex: number }) => {
+									args[parameterIndex] = param ? request.params[param] : request.params;
+								});
+								
+								// Handle @Query
+								queryMeta.forEach(({queryKey, queryIndex}: { queryKey: string, queryIndex: number }) => {
+									args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
+								});
+								
+								// Handle @Res
+								if (resIndex !== undefined) {
+									args[resIndex] = response;
+								}
+								// Handle @Request
+								if (reqIndex !== undefined) {
+									args[reqIndex] = request;
 								}
 								
-								args[reqBodyIndex] = request.body;
-							}
-							
-							const result = controllerInstance[methodName](...args);
-							
-							// check method is promise
-							if (result instanceof Promise) {
-								result.then(this.appContext.sendJsonResponse).catch(next);
-							} else if (result !== undefined) {
-								this.appContext.sendJsonResponse(result)
-							} else {
-								// apply default response
-								method.apply(controllerInstance, args);
+								// Handle @Body
+								if (reqBodyIndex !== undefined) {
+									const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
+									
+									if (ResBodyType) {
+										const instance = plainToInstance(ResBodyType, request.body);
+										const errors = await validate(instance);
+										if (errors.length > 0) {
+											const error = new HttpError('Validation Error',403,errors[0]);
+											error.stack = errors[0].toString();
+											return next(error);
+										}
+									}
+									
+									args[reqBodyIndex] = request.body;
+								}
+								
+								const result = controllerInstance[methodName](...args);
+								
+								// check method is promise
+								if (result instanceof Promise) {
+									result.then(this.appContext.sendJsonResponse).catch(next);
+								} else if (result !== undefined) {
+									this.appContext.sendJsonResponse(result)
+								} else {
+									// apply default response
+									method.apply(controllerInstance, args);
+								}
+								
+							} catch (err) {
+								next(err);
 							}
 						}
 					);
@@ -167,6 +174,7 @@ export class CoreApplication {
 					console.log(
 						`\x1b[32m[Route] ${basePath + route} [Method] ${method.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
 					);
+					
 				}
 			}
 			
