@@ -161,7 +161,9 @@ class CoreApplication {
                             const result = controllerInstance[methodName](...args);
                             // check method is promise
                             if (result instanceof Promise) {
-                                result.then(this.appContext.sendJsonResponse).catch(next);
+                                result.then((data) => {
+                                    this.appContext.sendJsonResponse(data);
+                                }).catch(next);
                             }
                             else if (result !== undefined) {
                                 this.appContext.sendJsonResponse(result);

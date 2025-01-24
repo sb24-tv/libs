@@ -16,8 +16,8 @@ export class RoleController {
     }
     
     @Post()
-    create(@Body() body: UserDto) {
-        return this.service.create();
+     create(@Body() body: UserDto) {
+        return  this.service.create();
     }
     
     @Put()

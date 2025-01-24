@@ -28,7 +28,7 @@ class GlobalErrorInterceptor implements ErrorInterceptor  {
 @Injectable()
 export class Service {
 	
-	create() {
+	async create() {
 		return "Service created";
 	}
 	

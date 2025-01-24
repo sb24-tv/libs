@@ -11,7 +11,6 @@
     "dev": "concurrently \"npx tsc --watch --project tsconfig.dev.json\" \"nodemon\""
   },
   "devDependencies": {
-    "@libs/core": "github:sb24-tv/libs",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.7",
     "class-transformer": "^0.5.1",
