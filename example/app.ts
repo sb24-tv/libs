@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import path from "path";
-import { Action, ErrorInterceptor, Injectable, ServerFactory } from "@libs/core";
+import { Action, ErrorInterceptor, Injectable, ServerFactory } from "../src";
+import { HttpError } from "../src/http-error-exception";
 
 @Injectable()
 class GlobalErrorInterceptor implements ErrorInterceptor  {
@@ -25,10 +26,26 @@ class GlobalErrorInterceptor implements ErrorInterceptor  {
 	}
 }
 
+@Injectable()
+export class Service {
+	
+	create() {
+		return "Service created";
+	}
+	
+	update(data: any) {
+       return "Service updated";
+    }
+	
+}
+
 const app = ServerFactory.createServer({
 	controllers: [
 		path.join(__dirname, './controllers/**/*.{js,ts}'),
-	]
+	],
+	providers: [
+        Service,
+    ]
 });
 
 app.setBodyParserOptions({
