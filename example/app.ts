@@ -20,7 +20,7 @@ class GlobalErrorInterceptor implements ErrorInterceptor  {
 			status,
 			message: error.message || 'Internal Server Error',
 			stack: filteredStack,
-			details: Array.isArray(error.details) ? error.details.map(function (detail:any) { return detail}) : error.details
+			details: Array.isArray(error.details) ? error.details.map(function (detail: any) { return detail }) : error.details
 		};
 	}
 }

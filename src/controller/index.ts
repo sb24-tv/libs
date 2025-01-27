@@ -7,6 +7,8 @@ export * from './decorator/Body';
 export * from './decorator/Query';
 export * from './decorator/Middleware';
 export * from './decorator/Standard';
+export * from './decorator/FileUpload';
+
 // utility
 export * from './util/index';
 // interface
