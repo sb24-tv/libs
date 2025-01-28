@@ -10,7 +10,16 @@ export class UploadController {
     private service: Service;
     
     @Post()
-    upload(@FileUpload() files: any) {
+    upload(@FileUpload({
+        limits: { fileSize: 1000000 },
+        fileFilter: (req, file, cb) => {
+            if (!file.originalname.match(/\.(jpg|jpeg|gif)$/)) {
+                // @ts-ignore
+                return cb(new Error('Only image files are allowed!'), false);
+            }
+            cb(null, true);
+        }
+    }) files: any) {
         return this.service.create();
     }
 }

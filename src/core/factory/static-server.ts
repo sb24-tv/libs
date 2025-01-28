@@ -29,6 +29,74 @@ import { serverOptions } from "./index";
 import { validate } from "class-validator";
 import { plainToInstance } from "class-transformer";
 import { HttpError } from "../../http-error-exception";
+import multer from "multer";
+
+
+async function executeRoute(this: any, request: Request, response: Response, next: NextFunction) {
+	try {
+		const method = this.controllerInstance[this.methodName];
+		const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, this.controllerInstance, this.methodName) || [];
+		const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, this.controllerInstance, this.methodName) || [];
+		const resIndex = Reflect.getMetadata(DECORATOR_KEY.RESPONSE, this.controllerInstance, this.methodName);
+		const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, this.controllerInstance, this.methodName);
+		const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, this.controllerInstance, this.methodName);
+		
+		const args: any[] = [];
+		
+		// Handle @Param
+		paramsMeta.forEach(({param, parameterIndex}: { param: string, parameterIndex: number }) => {
+			args[parameterIndex] = param ? request.params[param] : request.params;
+		});
+		
+		// Handle @Query
+		queryMeta.forEach(({queryKey, queryIndex}: { queryKey: string, queryIndex: number }) => {
+			args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
+		});
+		
+		// Handle @Res
+		if (resIndex !== undefined) {
+			args[resIndex] = response;
+		}
+		// Handle @Request
+		if (reqIndex !== undefined) {
+			args[reqIndex] = request;
+		}
+		
+		// Handle @Body
+		if (reqBodyIndex !== undefined) {
+			const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, this.controllerInstance, this.methodName);
+			
+			if (ResBodyType) {
+				const instance = plainToInstance(ResBodyType, request.body);
+				const errors = await validate(instance);
+				if (errors.length > 0) {
+					const error = new HttpError('Validation Error', 403, errors[0]);
+					error.stack = errors[0].toString();
+					return next(error);
+				}
+			}
+			
+			args[reqBodyIndex] = request.body;
+		}
+		
+		const result = this.controllerInstance[this.methodName](...args);
+		
+		// check method is promise
+		if (result instanceof Promise) {
+			result.then((data) => {
+				this.appContext.sendJsonResponse(data);
+			}).catch(next);
+		} else if (result !== undefined) {
+			this.appContext.sendJsonResponse(result)
+		} else {
+			// apply default response
+			method.apply(this.controllerInstance, args);
+		}
+		
+	} catch (err) {
+		next(err);
+	}
+}
 
 export class CoreApplication {
 
@@ -53,7 +121,7 @@ export class CoreApplication {
 			}
 		});
 	}
-
+	
 	public enableCors(options: CorsOptions | CorsOptionsDelegate) {
 		this.corsOptions = options;
 	}
@@ -77,7 +145,7 @@ export class CoreApplication {
 	}
 	
 	private registerController(controllers: any[], providers: Function[] | undefined) {
-		// Create a simple map to store provider instances for injection
+		// 	try {
 		const providerInstances = new Map();
 		
 		if (providers) {
@@ -100,93 +168,57 @@ export class CoreApplication {
 			if (isController !== DECORATOR_KEY.CONTROLLER) continue;
 			
 			if (!basePath) {
-				console.warn(
-					`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`
-				);
+				console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
 				continue;
 			}
 			
 			for (const methodName of methods) {
 				if (methodName === "constructor") continue;
 				
-				const route = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
-				const method = Reflect.getMetadata(DECORATOR_KEY.METHOD, prototype, methodName);
+				const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
+				const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD,prototype,methodName);
 				
-				if (typeof controllerInstance[methodName] === "function" && method) {
-					// @ts-ignore
-					router[method](
-						route,
-						async (request: Request, response: Response, next: NextFunction) => {
-							try {
-								const method = controllerInstance[methodName];
-								const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
-								const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, controllerInstance, methodName) || [];
-								const resIndex = Reflect.getMetadata(DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
-								const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, controllerInstance, methodName);
-								const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
-								
-								const args: any[] = [];
-								
-								// Handle @Param
-								paramsMeta.forEach(({param, parameterIndex}: { param: string, parameterIndex: number }) => {
-									args[parameterIndex] = param ? request.params[param] : request.params;
-								});
-								
-								// Handle @Query
-								queryMeta.forEach(({queryKey, queryIndex}: { queryKey: string, queryIndex: number }) => {
-									args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
-								});
-								
-								// Handle @Res
-								if (resIndex !== undefined) {
-									args[resIndex] = response;
-								}
-								// Handle @Request
-								if (reqIndex !== undefined) {
-									args[reqIndex] = request;
-								}
-								
-								// Handle @Body
-								if (reqBodyIndex !== undefined) {
-									const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
-									
-									if (ResBodyType) {
-										const instance = plainToInstance(ResBodyType, request.body);
-										const errors = await validate(instance);
-										if (errors.length > 0) {
-											const error = new HttpError('Validation Error',403,errors[0]);
-											error.stack = errors[0].toString();
-											return next(error);
-										}
-									}
-									
-									args[reqBodyIndex] = request.body;
-								}
-								
-								const result = controllerInstance[methodName](...args);
-								
-								// check method is promise
-								if (result instanceof Promise) {
-									result.then((data) => {
-										this.appContext.sendJsonResponse(data);
-									}).catch(next);
-								} else if (result !== undefined) {
-									this.appContext.sendJsonResponse(result)
-								} else {
-									// apply default response
-									method.apply(controllerInstance, args);
-								}
-								
-							} catch (err) {
-								next(err);
+				if (typeof controllerInstance[methodName] === "function" && classMethod) {
+					
+					const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance, methodName);
+					
+					if(fileUpload) {
+						// Configure multer storage
+						const storage = multer.diskStorage({
+							destination: (_req, _file, cb) => {
+								cb(null, "uploads/"); // Directory where files will be stored
+							},
+							filename: (_req, file, cb) => {
+								cb(null, `${Date.now()}-${file.originalname}`); // Rename file to avoid conflicts
 							}
-						}
-					);
+						});
+						
+						const upload = multer({ storage });
+						// @ts-ignore
+						router[classMethod](
+							route_path,
+							upload.single("file"),
+							executeRoute.bind({
+								controllerInstance,
+								methodName,
+								appContext: this.appContext
+							})
+						);
+					} else {
+						// @ts-ignore
+						router[classMethod](
+							route_path,
+							executeRoute.bind({
+								controllerInstance,
+								methodName,
+								appContext: this.appContext
+							})
+						);
+					}
 					
 					console.log(
-						`\x1b[32m[Route] ${basePath + route} [Method] ${method.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
+						`\x1b[32m[Route] ${basePath + route_path} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
 					);
-					
 				}
 			}
 			
@@ -218,16 +250,15 @@ export class CoreApplication {
 	private executeInterceptorBefore() {
 		if(this.interceptorsBefore.length > 0) {
 			this.interceptorsBefore.forEach((interceptor)=> {
-				this.server.use((request, response,next) => {
+				this.server.use((request,response,next) => {
 					this.appContext.interceptor = interceptor;
 					this.appContext.request = request;
 					this.appContext.response = response;
 					next();
 				});
 			});
-		
 		} else {
-			this.server.use((request, response,next) => {
+			this.server.use((request,response,next) => {
 				this.appContext.request = request;
 				this.appContext.response = response;
 				next();
@@ -243,7 +274,7 @@ export class CoreApplication {
 	
 	private catch(){
 		this.interceptorError.forEach((instance) => {
-			this.server.use((error: any, request: Request, response: Response, next: NextFunction) => {
+			this.server.use((error: any,request: Request,response: Response,next: NextFunction) => {
 				const data = instance.catch({
 					error,
 					request,
@@ -260,7 +291,7 @@ export class CoreApplication {
 	
 	private executeInterceptorAfter() {
 		this.interceptorsAfter.forEach(interceptor => {
-			this.server.use((request, response) => {
+			this.server.use((request,response) => {
 				const data = interceptor.intercept({ response, request });
 				if(data !== undefined) {
 					response.status(200).json(data);
