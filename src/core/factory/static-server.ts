@@ -14,6 +14,7 @@ import {
 	CoreMiddleware,
 	DECORATOR_KEY,
 	ErrorInterceptor,
+	executeRoute, FileUpload,
 	Interceptor,
 	isInterceptor,
 	isInterceptorError,
@@ -26,77 +27,7 @@ import {
 } from "cors";
 import AppContext from "./AppContext";
 import { serverOptions } from "./index";
-import { validate } from "class-validator";
-import { plainToInstance } from "class-transformer";
-import { HttpError } from "../../http-error-exception";
 import multer from "multer";
-
-
-async function executeRoute(this: any, request: Request, response: Response, next: NextFunction) {
-	try {
-		const method = this.controllerInstance[this.methodName];
-		const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, this.controllerInstance, this.methodName) || [];
-		const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, this.controllerInstance, this.methodName) || [];
-		const resIndex = Reflect.getMetadata(DECORATOR_KEY.RESPONSE, this.controllerInstance, this.methodName);
-		const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, this.controllerInstance, this.methodName);
-		const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, this.controllerInstance, this.methodName);
-		
-		const args: any[] = [];
-		
-		// Handle @Param
-		paramsMeta.forEach(({param, parameterIndex}: { param: string, parameterIndex: number }) => {
-			args[parameterIndex] = param ? request.params[param] : request.params;
-		});
-		
-		// Handle @Query
-		queryMeta.forEach(({queryKey, queryIndex}: { queryKey: string, queryIndex: number }) => {
-			args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
-		});
-		
-		// Handle @Res
-		if (resIndex !== undefined) {
-			args[resIndex] = response;
-		}
-		// Handle @Request
-		if (reqIndex !== undefined) {
-			args[reqIndex] = request;
-		}
-		
-		// Handle @Body
-		if (reqBodyIndex !== undefined) {
-			const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, this.controllerInstance, this.methodName);
-			
-			if (ResBodyType) {
-				const instance = plainToInstance(ResBodyType, request.body);
-				const errors = await validate(instance);
-				if (errors.length > 0) {
-					const error = new HttpError('Validation Error', 403, errors[0]);
-					error.stack = errors[0].toString();
-					return next(error);
-				}
-			}
-			
-			args[reqBodyIndex] = request.body;
-		}
-		
-		const result = this.controllerInstance[this.methodName](...args);
-		
-		// check method is promise
-		if (result instanceof Promise) {
-			result.then((data) => {
-				this.appContext.sendJsonResponse(data);
-			}).catch(next);
-		} else if (result !== undefined) {
-			this.appContext.sendJsonResponse(result)
-		} else {
-			// apply default response
-			method.apply(this.controllerInstance, args);
-		}
-		
-	} catch (err) {
-		next(err);
-	}
-}
 
 export class CoreApplication {
 
@@ -110,38 +41,72 @@ export class CoreApplication {
 	private middlewares: CoreMiddleware[] = [];
 	private providers: Function[] | undefined = this.options.providers;
 	private appContext: AppContext = new AppContext();
+	private prefix: string;
+	private excludePrefix: string[] | undefined = [];
 	
 	constructor(private options: serverOptions) {}
 	
-	public useGlobalMiddleware(...middlewares: any[]) {
-		middlewares.forEach((instance) => {
-			const middleware = new instance();
-			if (isMiddleware(middleware)) {
-				this.middlewares.push(middleware);
-			}
-		});
-	}
+	/**
+     * Registers global middleware functions to be used by the application.
+     * Each middleware is instantiated and added to the middleware stack if it meets the criteria.
+     *
+     * @param middlewares - A list of middleware classes to be instantiated and used globally.
+     * Each middleware should be a class that can be instantiated.
+     */
+    public useGlobalMiddleware(...middlewares: any[]) {
+        middlewares.forEach((instance) => {
+            const middleware = new instance();
+            if (isMiddleware(middleware)) {
+                this.middlewares.push(middleware);
+            }
+        });
+    }
 	
 	public enableCors(options: CorsOptions | CorsOptionsDelegate) {
 		this.corsOptions = options;
 	}
 	
+	/**
+     * Sets a global prefix for all routes in the application.
+     * This prefix will be prepended to all controller paths unless specified in the exclude list.
+     *
+     * @param prefix - The global prefix to be applied to all routes.
+     * @param excludePrefix - An optional array of route paths that should not have the global prefix applied.
+     */
+    public setGlobalPrefix(prefix: string, excludePrefix?: string[]) {
+        this.prefix = prefix;
+        this.excludePrefix = excludePrefix;
+    }
+	
+	/**
+	 * Registers global interceptors for the application.
+	 * This method allows adding interceptors that will be applied globally to all routes.
+	 * It supports both regular interceptors (before and after) and error interceptors.
+	 *
+	 * @param interceptors - An array of interceptor classes to be instantiated and used globally.
+	 *                       Each interceptor should be a class that can be instantiated.
+	 *
+	 * @remarks
+	 * The method uses reflection to determine if an interceptor should be executed before or after
+	 * the main request handling, or if it's an error interceptor. It then adds the interceptor
+	 * to the appropriate internal array (interceptorsBefore, interceptorsAfter, or interceptorError).
+	 *
+	 * @example
+	 * ```
+	 * app.useGlobalInterceptors(LoggingInterceptor, ErrorHandlingInterceptor);
+	 * ```
+	 */
 	public useGlobalInterceptors(...interceptors: any[]) {
-		interceptors.forEach((instance) => {
-			const after = Reflect.getMetadata(DECORATOR_KEY.AFTER_INTERCEPTOR, instance);
-			const before = Reflect.getMetadata(DECORATOR_KEY.BEFORE_INTERCEPTOR, instance);
-			
-			const interceptClass = new instance();
-			
-			if (isInterceptor(interceptClass)) {
-				if (after) this.interceptorsAfter.push(interceptClass);
-				if (before) this.interceptorsBefore.push(interceptClass);
-			}
-			
-			if (isInterceptorError(interceptClass)) {
-				this.interceptorError.push(interceptClass);
-			}
-		});
+	    interceptors.forEach((instance) => {
+	        const after = Reflect.getMetadata(DECORATOR_KEY.AFTER_INTERCEPTOR, instance);
+	        const before = Reflect.getMetadata(DECORATOR_KEY.BEFORE_INTERCEPTOR, instance);
+	        const interceptClass = new instance();
+	        if (isInterceptor(interceptClass)) {
+	            if (after) this.interceptorsAfter.push(interceptClass);
+	            if (before) this.interceptorsBefore.push(interceptClass);
+	        }
+	        if (isInterceptorError(interceptClass)) this.interceptorError.push(interceptClass);
+	    });
 	}
 	
 	private registerController(controllers: any[], providers: Function[] | undefined) {
@@ -172,6 +137,8 @@ export class CoreApplication {
 				continue;
 			}
 			
+			const routePath = this.excludePrefix?.includes(basePath) ? basePath : this.prefix + basePath;
+			
 			for (const methodName of methods) {
 				if (methodName === "constructor") continue;
 				
@@ -181,49 +148,70 @@ export class CoreApplication {
 				if (typeof controllerInstance[methodName] === "function" && classMethod) {
 					
 					const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance, methodName);
+					const args = [route_path];
 					
-					if(fileUpload) {
-						// Configure multer storage
-						const storage = multer.diskStorage({
-							destination: (_req, _file, cb) => {
-								cb(null, "uploads/"); // Directory where files will be stored
-							},
-							filename: (_req, file, cb) => {
-								cb(null, `${Date.now()}-${file.originalname}`); // Rename file to avoid conflicts
-							}
+					if (fileUpload) {
+						const {
+							keyField,
+							storage,
+							type,
+							limits,
+							dest,
+							preservePath,
+							fileFilter,
+							maxCount
+						} = fileUpload.options as FileUpload;
+						const upload = multer({
+							dest,
+							storage,
+							limits,
+							preservePath,
+							fileFilter
 						});
 						
-						const upload = multer({ storage });
-						// @ts-ignore
-						router[classMethod](
-							route_path,
-							upload.single("file"),
-							executeRoute.bind({
-								controllerInstance,
-								methodName,
-								appContext: this.appContext
-							})
-						);
-					} else {
-						// @ts-ignore
-						router[classMethod](
-							route_path,
-							executeRoute.bind({
-								controllerInstance,
-								methodName,
-								appContext: this.appContext
-							})
-						);
+						switch (type) {
+							case "single":
+								if (typeof keyField === "string") {
+									args.push(upload.single(keyField))
+								}
+                                break;
+                            case "array":
+	                            if (typeof keyField === "string") {
+		                            args.push(upload.array(keyField, maxCount))
+	                            }
+                                break;
+                            case "fields":
+								if (Array.isArray(keyField)) {
+									args.push(upload.fields(keyField));
+								}
+                                break;
+							case "any" :
+								args.push(upload.any());
+								break;
+							case "none" :
+								args.push(upload.none());
+								break;
+						}
 					}
 					
-					console.log(
-						`\x1b[32m[Route] ${basePath + route_path} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
-					);
+					args.push(executeRoute.bind({
+						controllerInstance,
+						methodName,
+						appContext: this.appContext
+					}));
+					
+					// @ts-ignore
+					router[classMethod](...args);
+					
+					if(this.options.enableLogging) {
+						console.log(
+							`\x1b[32m[Route] ${routePath} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
+						);
+					}
 				}
 			}
-			
-			// Attach the router to the server
-			this.server.use(basePath, router);
+		
+			this.server.use(routePath, router);
 		}
 	}
 
@@ -234,17 +222,33 @@ export class CoreApplication {
 		return new ControllerClass(...dependencies);
 	}
 	
+	/**
+	 * Configures body parsing options for the Express server.
+	 * This method sets up middleware to parse incoming request bodies based on the provided options.
+	 *
+	 * @param options - An object containing configuration options for different body parser types.
+	 * @param options.urlencoded - Options for parsing URL-encoded bodies. See OptionsUrlencoded for details.
+	 * @param options.json - Options for parsing JSON bodies. See OptionsJson for details.
+	 * @param options.raw - Options for parsing raw bodies. See Options for details.
+	 * @param options.text - Options for parsing plain text bodies. See OptionsText for details.
+	 *
+	 * @returns void
+	 *
+	 * @remarks
+	 * This method first applies the express.json() middleware, then iterates through the provided options
+	 * to apply additional body-parser middleware as specified.
+	 */
 	public setBodyParserOptions(options: {
-		urlencoded?: OptionsUrlencoded,
-		json?: OptionsJson,
-		raw?: Options,
-		text?: OptionsText
+	    urlencoded?: OptionsUrlencoded,
+	    json?: OptionsJson,
+	    raw?: Options,
+	    text?: OptionsText
 	}) {
-		this.server.use(express.json());
-		for (let key in options) {
-			// @ts-ignore
-			this.server.use(bodyParser[key](options[key]));
-		}
+	    this.server.use(express.json());
+	    for (let key in options) {
+	        // @ts-ignore
+	        this.server.use(bodyParser[key](options[key]));
+	    }
 	}
 	
 	private executeInterceptorBefore() {
@@ -300,11 +304,9 @@ export class CoreApplication {
 		});
 	}
 	
-	listen(port: number | string, callback: () => void){
+	public listen(port: number | string, callback: () => void){
 		const cors = require("cors");
-		if(cors) {
-			this.server.use(cors(this.corsOptions))
-		}
+		if(cors) this.server.use(cors(this.corsOptions));
 		this.executeMiddleware();
 		this.executeInterceptorBefore();
 		this.registerController(this.controllerClasses,this.providers)
@@ -312,6 +314,4 @@ export class CoreApplication {
 		this.catch();
 		this.server.listen(port, callback);
 	}
-	
-	
 }

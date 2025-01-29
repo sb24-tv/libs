@@ -2,7 +2,8 @@ import { CoreApplication } from "./static-server";
 
 export type serverOptions = {
 	controllers: Function[] | string[],
-	providers?: Function[]
+	providers?: Function[],
+	enableLogging?: boolean
 }
 
 export class ServerFactory {
