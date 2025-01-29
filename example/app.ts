@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import path from "path";
-import { Action, ErrorInterceptor, Injectable, ServerFactory } from "../src";
+import { Action, ErrorInterceptor, Injectable, Interceptor, ServerFactory } from "../src";
 
 @Injectable()
 class GlobalErrorInterceptor implements ErrorInterceptor  {
@@ -20,7 +20,7 @@ class GlobalErrorInterceptor implements ErrorInterceptor  {
 			status,
 			message: error.message || 'Internal Server Error',
 			stack: filteredStack,
-			details: Array.isArray(error.details) ? error.details.map(function (detail:any) { return detail}) : error.details
+			details: Array.isArray(error.details) ? error.details.map(function (detail: any) { return detail }) : error.details
 		};
 	}
 }
@@ -32,10 +32,26 @@ export class Service {
 		return "Service created";
 	}
 	
-	update(data: any) {
+	update(_data: any) {
        return "Service updated";
     }
 	
+}
+
+@Injectable({
+	type: 'AFTER'
+})
+export class NotFoundInterceptor implements Interceptor  {
+	
+	intercept(action: Action){
+		return {
+			message: 'Route Not Found',
+			method: action.request.method,
+			route: action.request.path,
+			success: false,
+			statusCode: 404
+		};
+	}
 }
 
 const app = ServerFactory.createServer({
@@ -44,7 +60,8 @@ const app = ServerFactory.createServer({
 	],
 	providers: [
         Service,
-    ]
+    ],
+	enableLogging: true
 });
 
 app.enableCors({
@@ -58,7 +75,11 @@ app.setBodyParserOptions({
 	}
 });
 
-app.useGlobalInterceptors(GlobalErrorInterceptor);
+app.setGlobalPrefix('/api/v1',['/upload']);
+app.useGlobalInterceptors(
+	GlobalErrorInterceptor,
+	NotFoundInterceptor
+);
 
 const PORT = 3100;
 app.listen(PORT, () => {

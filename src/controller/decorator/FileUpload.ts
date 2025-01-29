@@ -1,12 +1,18 @@
-import { Options } from 'multer';
+import { Field, Options } from 'multer';
 import {DECORATOR_KEY} from "../constant/decorator-key";
 
-/**
- * File upload decorator for Express routes.
- * @param options - Multer configuration options.
- */
-export function FileUpload(options: Options): MethodDecorator {
-    return (target, propertyKey) => {
-        // Reflect.defineMetadata(DECORATOR_KEY.METHOD, method, target, propertyKey);
+export interface FileUpload extends Options {
+    keyField?: string | readonly Field[];
+    type: 'single' | 'array' | 'fields' | 'none' | 'any';
+    maxCount?: number;
+}
+
+
+export function FileUpload(options: FileUpload) {
+    return (target: any, propertyKey: string | symbol, parameterIndex: number) => {
+        Reflect.defineMetadata(DECORATOR_KEY.FILE_UPLOAD, {
+            parameterIndex,
+            options
+        },target, propertyKey);
     };
 }
