@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HttpError = void 0;
 class HttpError extends Error {
     constructor(message, statusCode, details) {
         super(message);
@@ -9,4 +8,4 @@ class HttpError extends Error {
         Error.captureStackTrace(this, this.constructor); // Maintain proper stack trace
     }
 }
-exports.HttpError = HttpError;
+exports.default = HttpError;

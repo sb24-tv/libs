@@ -32,15 +32,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -50,13 +41,12 @@ const express_1 = __importStar(require("express"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const controller_1 = require("../../controller");
 const AppContext_1 = __importDefault(require("./AppContext"));
-const class_validator_1 = require("class-validator");
-const class_transformer_1 = require("class-transformer");
-const http_error_exception_1 = require("../../http-error-exception");
+const multer_1 = __importDefault(require("multer"));
 class CoreApplication {
     constructor(options) {
         this.options = options;
         this.server = (0, express_1.default)();
+        this.corsOptions = {};
         this.controllerClasses = (0, controller_1.prepareController)(this.options.controllers);
         this.interceptorsBefore = [];
         this.interceptorsAfter = [];
@@ -64,7 +54,15 @@ class CoreApplication {
         this.middlewares = [];
         this.providers = this.options.providers;
         this.appContext = new AppContext_1.default();
+        this.excludePrefix = [];
     }
+    /**
+     * Registers global middleware functions to be used by the application.
+     * Each middleware is instantiated and added to the middleware stack if it meets the criteria.
+     *
+     * @param middlewares - A list of middleware classes to be instantiated and used globally.
+     * Each middleware should be a class that can be instantiated.
+     */
     useGlobalMiddleware(...middlewares) {
         middlewares.forEach((instance) => {
             const middleware = new instance();
@@ -73,6 +71,38 @@ class CoreApplication {
             }
         });
     }
+    enableCors(options) {
+        this.corsOptions = options;
+    }
+    /**
+     * Sets a global prefix for all routes in the application.
+     * This prefix will be prepended to all controller paths unless specified in the exclude list.
+     *
+     * @param prefix - The global prefix to be applied to all routes.
+     * @param excludePrefix - An optional array of route paths that should not have the global prefix applied.
+     */
+    setGlobalPrefix(prefix, excludePrefix) {
+        this.prefix = prefix;
+        this.excludePrefix = excludePrefix;
+    }
+    /**
+     * Registers global interceptors for the application.
+     * This method allows adding interceptors that will be applied globally to all routes.
+     * It supports both regular interceptors (before and after) and error interceptors.
+     *
+     * @param interceptors - An array of interceptor classes to be instantiated and used globally.
+     *                       Each interceptor should be a class that can be instantiated.
+     *
+     * @remarks
+     * The method uses reflection to determine if an interceptor should be executed before or after
+     * the main request handling, or if it's an error interceptor. It then adds the interceptor
+     * to the appropriate internal array (interceptorsBefore, interceptorsAfter, or interceptorError).
+     *
+     * @example
+     * ```
+     * app.useGlobalInterceptors(LoggingInterceptor, ErrorHandlingInterceptor);
+     * ```
+     */
     useGlobalInterceptors(...interceptors) {
         interceptors.forEach((instance) => {
             const after = Reflect.getMetadata(controller_1.DECORATOR_KEY.AFTER_INTERCEPTOR, instance);
@@ -84,13 +114,13 @@ class CoreApplication {
                 if (before)
                     this.interceptorsBefore.push(interceptClass);
             }
-            if ((0, controller_1.isInterceptorError)(interceptClass)) {
+            if ((0, controller_1.isInterceptorError)(interceptClass))
                 this.interceptorError.push(interceptClass);
-            }
         });
     }
     registerController(controllers, providers) {
-        // Create a simple map to store provider instances for injection
+        var _a;
+        // 	try {
         const providerInstances = new Map();
         if (providers) {
             for (const ProviderClass of providers) {
@@ -112,76 +142,61 @@ class CoreApplication {
                 console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
                 continue;
             }
+            const routePath = ((_a = this.excludePrefix) === null || _a === void 0 ? void 0 : _a.includes(basePath)) ? basePath : this.prefix + basePath;
             for (const methodName of methods) {
                 if (methodName === "constructor")
                     continue;
-                const route = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
-                const method = Reflect.getMetadata(controller_1.DECORATOR_KEY.METHOD, prototype, methodName);
-                if (typeof controllerInstance[methodName] === "function" && method) {
-                    // @ts-ignore
-                    router[method](route, (request, response, next) => __awaiter(this, void 0, void 0, function* () {
-                        try {
-                            const method = controllerInstance[methodName];
-                            const paramsMeta = Reflect.getMetadata(controller_1.DECORATOR_KEY.PARAM, controllerInstance, methodName) || [];
-                            const queryMeta = Reflect.getMetadata(controller_1.DECORATOR_KEY.QUERY, controllerInstance, methodName) || [];
-                            const resIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.RESPONSE, controllerInstance, methodName);
-                            const reqIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST, controllerInstance, methodName);
-                            const reqBodyIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY, controllerInstance, methodName);
-                            const args = [];
-                            // Handle @Param
-                            paramsMeta.forEach(({ param, parameterIndex }) => {
-                                args[parameterIndex] = param ? request.params[param] : request.params;
-                            });
-                            // Handle @Query
-                            queryMeta.forEach(({ queryKey, queryIndex }) => {
-                                args[queryIndex] = queryKey ? request.query[queryKey] : request.query;
-                            });
-                            // Handle @Res
-                            if (resIndex !== undefined) {
-                                args[resIndex] = response;
-                            }
-                            // Handle @Request
-                            if (reqIndex !== undefined) {
-                                args[reqIndex] = request;
-                            }
-                            // Handle @Body
-                            if (reqBodyIndex !== undefined) {
-                                const ResBodyType = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
-                                if (ResBodyType) {
-                                    const instance = (0, class_transformer_1.plainToInstance)(ResBodyType, request.body);
-                                    const errors = yield (0, class_validator_1.validate)(instance);
-                                    if (errors.length > 0) {
-                                        const error = new http_error_exception_1.HttpError('Validation Error', 403, errors[0]);
-                                        error.stack = errors[0].toString();
-                                        return next(error);
-                                    }
+                const route_path = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
+                const classMethod = Reflect.getMetadata(controller_1.DECORATOR_KEY.METHOD, prototype, methodName);
+                if (typeof controllerInstance[methodName] === "function" && classMethod) {
+                    const fileUpload = Reflect.getMetadata(controller_1.DECORATOR_KEY.FILE_UPLOAD, controllerInstance, methodName);
+                    const args = [route_path];
+                    if (fileUpload) {
+                        const { keyField, storage, type, limits, dest, preservePath, fileFilter, maxCount } = fileUpload.options;
+                        const upload = (0, multer_1.default)({
+                            dest,
+                            storage,
+                            limits,
+                            preservePath,
+                            fileFilter
+                        });
+                        switch (type) {
+                            case "single":
+                                if (typeof keyField === "string") {
+                                    args.push(upload.single(keyField));
                                 }
-                                args[reqBodyIndex] = request.body;
-                            }
-                            const result = controllerInstance[methodName](...args);
-                            // check method is promise
-                            if (result instanceof Promise) {
-                                result.then((data) => {
-                                    this.appContext.sendJsonResponse(data);
-                                }).catch(next);
-                            }
-                            else if (result !== undefined) {
-                                this.appContext.sendJsonResponse(result);
-                            }
-                            else {
-                                // apply default response
-                                method.apply(controllerInstance, args);
-                            }
+                                break;
+                            case "array":
+                                if (typeof keyField === "string") {
+                                    args.push(upload.array(keyField, maxCount));
+                                }
+                                break;
+                            case "fields":
+                                if (Array.isArray(keyField)) {
+                                    args.push(upload.fields(keyField));
+                                }
+                                break;
+                            case "any":
+                                args.push(upload.any());
+                                break;
+                            case "none":
+                                args.push(upload.none());
+                                break;
                         }
-                        catch (err) {
-                            next(err);
-                        }
+                    }
+                    args.push(controller_1.executeRoute.bind({
+                        controllerInstance,
+                        methodName,
+                        appContext: this.appContext
                     }));
-                    console.log(`\x1b[32m[Route] ${basePath + route} [Method] ${method.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`);
+                    // @ts-ignore
+                    router[classMethod](...args);
+                    if (this.options.enableLogging) {
+                        console.log(`\x1b[32m[Route] ${routePath} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`);
+                    }
                 }
             }
-            // Attach the router to the server
-            this.server.use(basePath, router);
+            this.server.use(routePath, router);
         }
     }
     // Helper method to instantiate controllers with injected providers
@@ -190,6 +205,22 @@ class CoreApplication {
         const dependencies = paramTypes.map(type => providerInstances.get(type) || null);
         return new ControllerClass(...dependencies);
     }
+    /**
+     * Configures body parsing options for the Express server.
+     * This method sets up middleware to parse incoming request bodies based on the provided options.
+     *
+     * @param options - An object containing configuration options for different body parser types.
+     * @param options.urlencoded - Options for parsing URL-encoded bodies. See OptionsUrlencoded for details.
+     * @param options.json - Options for parsing JSON bodies. See OptionsJson for details.
+     * @param options.raw - Options for parsing raw bodies. See Options for details.
+     * @param options.text - Options for parsing plain text bodies. See OptionsText for details.
+     *
+     * @returns void
+     *
+     * @remarks
+     * This method first applies the express.json() middleware, then iterates through the provided options
+     * to apply additional body-parser middleware as specified.
+     */
     setBodyParserOptions(options) {
         this.server.use(express_1.default.json());
         for (let key in options) {
@@ -247,6 +278,9 @@ class CoreApplication {
         });
     }
     listen(port, callback) {
+        const cors = require("cors");
+        if (cors)
+            this.server.use(cors(this.corsOptions));
         this.executeMiddleware();
         this.executeInterceptorBefore();
         this.registerController(this.controllerClasses, this.providers);

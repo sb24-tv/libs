@@ -14,5 +14,6 @@ declare const DECORATOR_KEY: {
     readonly INTERCEPTOR: symbol;
     readonly BEFORE_INTERCEPTOR: symbol;
     readonly AFTER_INTERCEPTOR: symbol;
+    readonly FILE_UPLOAD: symbol;
 };
 export { DECORATOR_KEY };

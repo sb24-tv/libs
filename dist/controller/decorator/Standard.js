@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Patch = exports.Delete = exports.Put = exports.Post = exports.Get = void 0;
+const util_1 = require("../util");
+const Get = (path) => (0, util_1.HttpMethod)('get', path);
+exports.Get = Get;
+const Post = (path) => (0, util_1.HttpMethod)('post', path);
+exports.Post = Post;
+const Put = (path) => (0, util_1.HttpMethod)('put', path);
+exports.Put = Put;
+const Delete = (path) => (0, util_1.HttpMethod)('delete', path);
+exports.Delete = Delete;
+const Patch = (path) => (0, util_1.HttpMethod)('patch', path);
+exports.Patch = Patch;
