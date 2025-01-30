@@ -6,4 +6,5 @@ export type serverOptions = {
 };
 export declare class ServerFactory {
     static createServer(options: serverOptions): CoreApplication;
+    static createMicroservice(options: serverOptions): void;
 }

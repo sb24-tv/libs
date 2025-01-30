@@ -142,7 +142,7 @@ class CoreApplication {
                 console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
                 continue;
             }
-            const routePath = ((_a = this.excludePrefix) === null || _a === void 0 ? void 0 : _a.includes(basePath)) ? basePath : this.prefix + basePath;
+            const routePath = ((_a = this.excludePrefix) === null || _a === void 0 ? void 0 : _a.includes(basePath)) ? basePath : this.prefix ? this.prefix + basePath : basePath;
             for (const methodName of methods) {
                 if (methodName === "constructor")
                     continue;

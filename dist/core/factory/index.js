@@ -6,5 +6,7 @@ class ServerFactory {
     static createServer(options) {
         return new static_server_1.CoreApplication(options);
     }
+    static createMicroservice(options) {
+    }
 }
 exports.ServerFactory = ServerFactory;
