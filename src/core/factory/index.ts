@@ -10,4 +10,8 @@ export class ServerFactory {
 	static createServer(options: serverOptions): CoreApplication {
 		return new CoreApplication(options);
 	}
+	
+	static createMicroservice(options: serverOptions) {
+	
+	}
 }

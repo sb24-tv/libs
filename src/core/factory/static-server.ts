@@ -14,7 +14,8 @@ import {
 	CoreMiddleware,
 	DECORATOR_KEY,
 	ErrorInterceptor,
-	executeRoute, FileUpload,
+	executeRoute,
+	FileUpload,
 	Interceptor,
 	isInterceptor,
 	isInterceptorError,
@@ -137,7 +138,7 @@ export class CoreApplication {
 				continue;
 			}
 			
-			const routePath = this.excludePrefix?.includes(basePath) ? basePath : this.prefix + basePath;
+			const routePath = this.excludePrefix?.includes(basePath) ? basePath : this.prefix ? this.prefix + basePath : basePath;
 			
 			for (const methodName of methods) {
 				if (methodName === "constructor") continue;

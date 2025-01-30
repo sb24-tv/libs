@@ -38,9 +38,7 @@ export class Service {
 	
 }
 
-@Injectable({
-	type: 'AFTER'
-})
+@Injectable({type: 'AFTER'})
 export class NotFoundInterceptor implements Interceptor  {
 	
 	intercept(action: Action){
