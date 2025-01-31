@@ -28,7 +28,6 @@ import {
 } from "cors";
 import AppContext from "./AppContext";
 import { serverOptions } from "./index";
-import multer from "multer";
 
 export class CoreApplication {
 
@@ -152,6 +151,8 @@ export class CoreApplication {
 					const args = [route_path];
 					
 					if (fileUpload) {
+						const multer = require("multer");
+						if(!multer) throw new Error("Invalid multer install")
 						const {
 							keyField,
 							storage,
