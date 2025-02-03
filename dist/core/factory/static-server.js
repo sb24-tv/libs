@@ -41,7 +41,6 @@ const express_1 = __importStar(require("express"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const controller_1 = require("../../controller");
 const AppContext_1 = __importDefault(require("./AppContext"));
-const multer_1 = __importDefault(require("multer"));
 class CoreApplication {
     constructor(options) {
         this.options = options;
@@ -152,8 +151,11 @@ class CoreApplication {
                     const fileUpload = Reflect.getMetadata(controller_1.DECORATOR_KEY.FILE_UPLOAD, controllerInstance, methodName);
                     const args = [route_path];
                     if (fileUpload) {
+                        const multer = require("multer");
+                        if (!multer)
+                            throw new Error("Invalid multer install");
                         const { keyField, storage, type, limits, dest, preservePath, fileFilter, maxCount } = fileUpload.options;
-                        const upload = (0, multer_1.default)({
+                        const upload = multer({
                             dest,
                             storage,
                             limits,

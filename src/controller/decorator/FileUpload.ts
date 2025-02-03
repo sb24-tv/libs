@@ -1,10 +1,10 @@
 import { Field, Options } from 'multer';
 import {DECORATOR_KEY} from "../constant/decorator-key";
-
 export interface FileUpload extends Options {
     keyField?: string | readonly Field[];
     type: 'single' | 'array' | 'fields' | 'none' | 'any';
     maxCount?: number;
+    objectStoreCommand?: <T>(file: T ,cb: (...data: any) => void) => void;
 }
 
 

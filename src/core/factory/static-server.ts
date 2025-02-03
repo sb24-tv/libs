@@ -152,7 +152,8 @@ export class CoreApplication {
 					
 					if (fileUpload) {
 						const multer = require("multer");
-						if(!multer) throw new Error("Invalid multer install")
+						if(!multer) throw new Error("Invalid multer install");
+						
 						const {
 							keyField,
 							storage,
@@ -163,6 +164,7 @@ export class CoreApplication {
 							fileFilter,
 							maxCount
 						} = fileUpload.options as FileUpload;
+						
 						const upload = multer({
 							dest,
 							storage,
