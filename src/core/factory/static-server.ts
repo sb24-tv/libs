@@ -146,7 +146,6 @@ export class CoreApplication {
 				const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD,prototype,methodName);
 				
 				if (typeof controllerInstance[methodName] === "function" && classMethod) {
-					
 					const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance, methodName);
 					const args = [route_path];
 					
@@ -206,15 +205,14 @@ export class CoreApplication {
 					
 					// @ts-ignore
 					router[classMethod](...args);
-					
 					if(this.options.enableLogging) {
 						console.log(
-							`\x1b[32m[Route] ${routePath} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
+							`\x1b[32m[Route] ${routePath}${route_path} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
 						);
 					}
 				}
 			}
-		
+			
 			this.server.use(routePath, router);
 		}
 	}

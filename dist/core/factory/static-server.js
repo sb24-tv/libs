@@ -194,7 +194,7 @@ class CoreApplication {
                     // @ts-ignore
                     router[classMethod](...args);
                     if (this.options.enableLogging) {
-                        console.log(`\x1b[32m[Route] ${routePath} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`);
+                        console.log(`\x1b[32m[Route] ${routePath}${route_path} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`);
                     }
                 }
             }
