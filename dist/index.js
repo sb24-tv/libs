@@ -19,3 +19,4 @@ __exportStar(require("./di"), exports);
 __exportStar(require("./enums/HttpCode"), exports);
 __exportStar(require("./controller"), exports);
 __exportStar(require("./core/factory"), exports);
+__exportStar(require("./http-error-exception"), exports);
