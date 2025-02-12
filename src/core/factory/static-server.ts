@@ -40,7 +40,6 @@ export class CoreApplication {
 	private interceptorError: ErrorInterceptor[] = [];
 	private middlewares: CoreMiddleware[] = [];
 	private providers: Function[] | undefined = this.options.providers;
-	private appContext: AppContext = new AppContext();
 	private prefix: string;
 	private excludePrefix: string[] | undefined = [];
 	
@@ -148,7 +147,7 @@ export class CoreApplication {
 				if (typeof controllerInstance[methodName] === "function" && classMethod) {
 					const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance, methodName);
 					const args = [route_path];
-					
+					const appContext: AppContext = new AppContext();
 					if (fileUpload) {
 						const multer = require("multer");
 						if(!multer) throw new Error("Invalid multer install");
@@ -200,7 +199,7 @@ export class CoreApplication {
 					args.push(executeRoute.bind({
 						controllerInstance,
 						methodName,
-						appContext: this.appContext
+						appContext
 					}));
 					
 					// @ts-ignore
@@ -254,19 +253,20 @@ export class CoreApplication {
 	}
 	
 	private executeInterceptorBefore() {
+		const appContext: AppContext = new AppContext();
 		if(this.interceptorsBefore.length > 0) {
 			this.interceptorsBefore.forEach((interceptor)=> {
 				this.server.use((request,response,next) => {
-					this.appContext.interceptor = interceptor;
-					this.appContext.request = request;
-					this.appContext.response = response;
+					appContext.interceptor = interceptor;
+					appContext.request = request;
+					appContext.response = response;
 					next();
 				});
 			});
 		} else {
 			this.server.use((request,response,next) => {
-				this.appContext.request = request;
-				this.appContext.response = response;
+				appContext.request = request;
+				appContext.response = response;
 				next();
 			});
 		}

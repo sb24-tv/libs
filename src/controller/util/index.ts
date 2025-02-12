@@ -48,7 +48,6 @@ export function HttpMethod(method: HttpMethod, path?: string): MethodDecorator {
 	};
 }
 
-
 export function prepareController(controllers: Function[] | string[]) {
 	let controllerClasses: Function[] = [];
 	if (controllers && controllers.length) {
@@ -73,6 +72,11 @@ export function isMiddleware(obj: CoreMiddleware): obj is CoreMiddleware {
 
 export async function executeRoute(this: any, request: Request, response: Response, next: NextFunction) {
 	try {
+		
+		this.appContext.response = response;
+		this.appContext.request = request;
+		this.appContext.next = next;
+		
 		const method = this.controllerInstance[this.methodName];
 		const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, this.controllerInstance, this.methodName) || [];
 		const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, this.controllerInstance, this.methodName) || [];
@@ -138,7 +142,7 @@ export async function executeRoute(this: any, request: Request, response: Respon
 				this.appContext.sendJsonResponse(data);
 			}).catch(next);
 		} else if (result !== undefined) {
-			this.appContext.sendJsonResponse(result)
+			this.appContext.sendJsonResponse(result);
 		} else {
 			// apply default response
 			method.apply(this.controllerInstance, args);

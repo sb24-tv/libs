@@ -35,5 +35,8 @@
   "private": true,
   "files": [
     "dist"
-  ]
+  ],
+  "dependencies": {
+    "eventemitter3": "^5.0.1"
+  }
 }

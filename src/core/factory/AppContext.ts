@@ -17,10 +17,13 @@ export default class AppContext {
     
     // Example method to send a standard JSON response
     sendJsonResponse(body: any, statusCode = 200) {
-        const data = this.interceptor ? this.interceptor.intercept({
-            response: this.response,
-            request: this.request},
-            body) : body;
+        const data = this.interceptor ? this.interceptor.intercept(
+            {
+                response: this.response,
+                request: this.request
+            },
+            body
+        ) : body;
         this.response.status(statusCode).json(data);
     }
 }

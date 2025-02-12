@@ -59,6 +59,21 @@ export class NotFoundInterceptor implements Interceptor {
 		};
 	}
 }
+@Injectable()
+export class ResponseTransformerInterceptor implements Interceptor  {
+	
+	intercept(action: Action,data: any){
+		const before = Date.now();
+		return {
+			data,
+			duration: `${Date.now() - before}ms`,
+			method: action.request.method,
+			route: action.request.path,
+			success: true,
+			statusCode: action.response.statusCode
+		};
+	}
+}
 
 const app = ServerFactory.createServer({
 	controllers: [
@@ -83,6 +98,7 @@ app.setBodyParserOptions({
 
 app.setGlobalPrefix('/api/v1');
 app.useGlobalInterceptors(
+	ResponseTransformerInterceptor,
 	GlobalErrorInterceptor,
 	NotFoundInterceptor
 );
@@ -91,3 +107,11 @@ const PORT = 3100;
 app.listen(PORT, () => {
 	console.log(`Worker ${process.pid} started on http://localhost:${PORT}`);
 });
+
+(async function () {
+	
+	const dd = await fetch('http://localhost:3100/api/v1/role').then(response => response.json());
+	// const dddd = await fetch('http://localhost:3100/api/v1/role/dd').then(response => response.json());
+	//
+	// console.log(dd,dddd)
+})()
