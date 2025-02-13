@@ -133,11 +133,21 @@ function executeRoute(request, response, next) {
             // check method is promise
             if (result instanceof Promise) {
                 result.then((data) => {
-                    this.appContext.sendJsonResponse(data);
+                    this.appContext.sendJsonResponse({
+                        data,
+                        status: 200,
+                        request,
+                        response
+                    });
                 }).catch(next);
             }
             else if (result !== undefined) {
-                this.appContext.sendJsonResponse(result);
+                this.appContext.sendJsonResponse({
+                    data: result,
+                    status: 200,
+                    request,
+                    response
+                });
             }
             else {
                 // apply default response
