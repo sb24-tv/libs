@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post,Put } from "../../../src";
+import { Body, ConflictError, Controller, Get, Post, Put } from "../../../src";
 
 import { Service } from "../../app";
 import { Inject } from "../../../src";
@@ -12,12 +12,14 @@ export class RoleController {
     
     @Get()
     get() {
+        
+        throw new ConflictError()
         let dd = 0;
         for(let i = 0; i < 10; i++) {
             // do something
             dd += i;
         }
-        console.log("a",dd);
+      
         return dd
     }
     
@@ -28,7 +30,6 @@ export class RoleController {
             // do something
             resuly += i;
         }
-        console.log("d",resuly);
         return resuly
     }
     

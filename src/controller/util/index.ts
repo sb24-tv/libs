@@ -73,10 +73,6 @@ export function isMiddleware(obj: CoreMiddleware): obj is CoreMiddleware {
 export async function executeRoute(this: any, request: Request, response: Response, next: NextFunction) {
 	try {
 		
-		this.appContext.response = response;
-		this.appContext.request = request;
-		this.appContext.next = next;
-		
 		const method = this.controllerInstance[this.methodName];
 		const paramsMeta = Reflect.getMetadata(DECORATOR_KEY.PARAM, this.controllerInstance, this.methodName) || [];
 		const queryMeta = Reflect.getMetadata(DECORATOR_KEY.QUERY, this.controllerInstance, this.methodName) || [];
@@ -84,7 +80,6 @@ export async function executeRoute(this: any, request: Request, response: Respon
 		const reqIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST, this.controllerInstance, this.methodName);
 		const reqBodyIndex = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY, this.controllerInstance, this.methodName);
 		const reqFilesIndex = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD, this.controllerInstance, this.methodName);
-		
 		const args: any[] = [];
 		
 		// Handle @Param
@@ -101,6 +96,7 @@ export async function executeRoute(this: any, request: Request, response: Respon
 		if (resIndex !== undefined) {
 			args[resIndex] = response;
 		}
+		
 		// Handle @Request
 		if (reqIndex !== undefined) {
 			args[reqIndex] = request;
@@ -139,10 +135,20 @@ export async function executeRoute(this: any, request: Request, response: Respon
 		// check method is promise
 		if (result instanceof Promise) {
 			result.then((data) => {
-				this.appContext.sendJsonResponse(data);
+				this.appContext.sendJsonResponse({
+					data,
+                    status: 200,
+					request,
+					response
+				});
 			}).catch(next);
 		} else if (result !== undefined) {
-			this.appContext.sendJsonResponse(result);
+			this.appContext.sendJsonResponse({
+				data: result,
+				status: 200,
+				request,
+				response
+			});
 		} else {
 			// apply default response
 			method.apply(this.controllerInstance, args);

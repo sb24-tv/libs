@@ -1,29 +1,49 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { Interceptor } from "../../controller";
+import { eventBus } from "./event-bus";
 
 export default class AppContext {
-    // @ts-ignore
-    public interceptor: Interceptor;
-    // @ts-ignore
-    public request: Request;
-    // @ts-ignore
-    public response: Response;
-    // @ts-ignore
-    public next: NextFunction;
     
-    setHeader(key: string, value: string): void {
-        this.response.setHeader(key, value);
-    }
+    public interceptor: Interceptor | undefined;
+    public request: Request | undefined;
+    public response: Response | undefined;
     
     // Example method to send a standard JSON response
-    sendJsonResponse(body: any, statusCode = 200) {
-        const data = this.interceptor ? this.interceptor.intercept(
-            {
-                response: this.response,
-                request: this.request
-            },
-            body
-        ) : body;
-        this.response.status(statusCode).json(data);
+    sendJsonResponse(body: any) {
+        eventBus.emit('response', body);
     }
+    
+    private reset(){
+        this.interceptor = undefined;
+        this.request = undefined;
+        this.response = undefined;
+    }
+    
+    onEmitInterceptor(data: any){
+        // Emit an event before processing the request
+        eventBus.emit("requestReceived", data);
+    }
+    
+    
+    start(){
+        eventBus.on("requestReceived", (data: any) => {
+            this.request = data.request;
+            this.response = data.response;
+            this.interceptor = data.interceptor;
+        });
+        
+        eventBus.on("response", (agr: any) => {
+            const { response ,data,request} = agr;
+            const body = this.interceptor ? this.interceptor.intercept(
+                {
+                    response,
+                    request
+                },
+                data
+            ) : data;
+            response.status(200).json(body);
+            this.reset();
+        });
+    }
+    
 }

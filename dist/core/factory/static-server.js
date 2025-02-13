@@ -119,7 +119,6 @@ class CoreApplication {
     }
     registerController(controllers, providers) {
         var _a;
-        // 	try {
         const providerInstances = new Map();
         if (providers) {
             for (const ProviderClass of providers) {
@@ -233,19 +232,15 @@ class CoreApplication {
     executeInterceptorBefore() {
         if (this.interceptorsBefore.length > 0) {
             this.interceptorsBefore.forEach((interceptor) => {
-                this.server.use((request, response, next) => {
-                    this.appContext.interceptor = interceptor;
-                    this.appContext.request = request;
-                    this.appContext.response = response;
+                this.server.use((req, _res, next) => {
+                    this.appContext.onEmitInterceptor({
+                        method: req.method,
+                        url: req.url,
+                        timestamp: new Date(),
+                        interceptor
+                    });
                     next();
                 });
-            });
-        }
-        else {
-            this.server.use((request, response, next) => {
-                this.appContext.request = request;
-                this.appContext.response = response;
-                next();
             });
         }
     }
@@ -280,6 +275,8 @@ class CoreApplication {
         });
     }
     listen(port, callback) {
+        // Event listeners
+        this.appContext.start();
         const cors = require("cors");
         if (cors)
             this.server.use(cors(this.corsOptions));

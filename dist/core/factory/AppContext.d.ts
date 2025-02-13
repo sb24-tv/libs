@@ -1,10 +1,11 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { Interceptor } from "../../controller";
 export default class AppContext {
-    interceptor: Interceptor;
-    request: Request;
-    response: Response;
-    next: NextFunction;
-    setHeader(key: string, value: string): void;
-    sendJsonResponse(body: any, statusCode?: number): void;
+    interceptor: Interceptor | undefined;
+    request: Request | undefined;
+    response: Response | undefined;
+    sendJsonResponse(body: any): void;
+    private reset;
+    onEmitInterceptor(data: any): void;
+    start(): void;
 }

@@ -23,7 +23,6 @@ class GlobalErrorInterceptor implements ErrorInterceptor  {
 			.filter((line: any) => !line.includes('node_modules')) // Remove node_modules paths
 			.join('\n')
 			: '';
-
 		return {
 			status,
 			message: error.message || 'Internal Server Error',
@@ -52,8 +51,8 @@ export class NotFoundInterceptor implements Interceptor {
 	intercept(action: Action){
 		return {
 			message: 'Route Not Found',
-			method: action.request.method,
-			route: action.request.path,
+			method: action.request?.method,
+			route: action.request?.path,
 			success: false,
 			statusCode: 404
 		};
@@ -67,17 +66,17 @@ export class ResponseTransformerInterceptor implements Interceptor  {
 		return {
 			data,
 			duration: `${Date.now() - before}ms`,
-			method: action.request.method,
-			route: action.request.path,
+			method: action.request?.method,
+			route: action.request?.path,
 			success: true,
-			statusCode: action.response.statusCode
+			statusCode: action.response?.statusCode
 		};
 	}
 }
 
 const app = ServerFactory.createServer({
 	controllers: [
-		path.join(__dirname, './controllers/**/*.{js,ts}'),
+		path.join(__dirname, './controllers/**/*.{js,ts}')
 	],
 	providers: [
         Service,
@@ -92,7 +91,7 @@ app.enableCors({
 
 app.setBodyParserOptions({
 	urlencoded: {
-		extended: false,
+		extended: false
 	}
 });
 
@@ -105,13 +104,13 @@ app.useGlobalInterceptors(
 
 const PORT = 3100;
 app.listen(PORT, () => {
-	console.log(`Worker ${process.pid} started on http://localhost:${PORT}`);
+	console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
 
-(async function () {
-	
-	const dd = await fetch('http://localhost:3100/api/v1/role').then(response => response.json());
-	// const dddd = await fetch('http://localhost:3100/api/v1/role/dd').then(response => response.json());
-	//
-	// console.log(dd,dddd)
-})()
+// (async function () {
+//
+// 	const dd = await fetch('http://localhost:3100/api/v1/role').then(response => response.json());
+// 	// const dddd = await fetch('http://localhost:3100/api/v1/role/dd').then(response => response.json());
+// 	//
+// 	// console.log(dd,dddd)
+// })()

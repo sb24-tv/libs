@@ -1,10 +1,10 @@
-import { NextFunction, Request,Response} from 'express';
+import { NextFunction, Request, Response} from 'express';
 
 export interface Action {
-	request: Request;
-	response: Response;
-	next: NextFunction;
-	error: any;
+	request?: Request;
+	response?: Response;
+	next?: NextFunction;
+	error?: any;
 }
 
 export interface Interceptor {

@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
 export interface Action {
-    request: Request;
-    response: Response;
-    next: NextFunction;
-    error: any;
+    request?: Request;
+    response?: Response;
+    next?: NextFunction;
+    error?: any;
 }
 export interface Interceptor {
     intercept(context: Pick<Action, "request" | "response">, content?: any): object;
