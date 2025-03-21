@@ -9,7 +9,7 @@ import {
 } from "../src";
 import dotenv from "dotenv";
 dotenv.config();
-
+import { Server } from "socket.io";
 @Injectable()
 class GlobalErrorInterceptor implements ErrorInterceptor  {
 	catch({error}: Action) {
@@ -81,7 +81,8 @@ const app = ServerFactory.createServer({
 	providers: [
         Service,
     ],
-	enableLogging: true
+	enableLogging: true,
+	SocketIO: Server
 });
 
 app.enableCors({

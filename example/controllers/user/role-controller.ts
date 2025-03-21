@@ -12,15 +12,7 @@ export class RoleController {
     
     @Get()
     get() {
-        
         throw new ConflictError()
-        let dd = 0;
-        for(let i = 0; i < 10; i++) {
-            // do something
-            dd += i;
-        }
-      
-        return dd
     }
     
     @Get('/dd')

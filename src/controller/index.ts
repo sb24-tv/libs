@@ -1,4 +1,5 @@
 export * from './decorator/Controller';
+export * from './decorator/SocketController';
 // decorator
 export * from './decorator/Res';
 export * from './decorator/Req';

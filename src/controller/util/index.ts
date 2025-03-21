@@ -6,7 +6,7 @@ import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import { HttpError } from "../../http-error-exception";
 
-type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
+type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch' | 'event';
 
 /**
  * Loads all exported classes from the given directory.

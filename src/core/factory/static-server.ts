@@ -2,12 +2,12 @@ import express, {
 	NextFunction,
 	Request,
 	Response,
-	Router
+	Router,
 } from 'express';
 import bodyParser, {
 	Options,
 	OptionsJson,
-	OptionsUrlencoded ,
+	OptionsUrlencoded,
 	OptionsText
 } from 'body-parser';
 import {
@@ -28,12 +28,17 @@ import {
 } from "cors";
 import AppContext from "./AppContext";
 import { serverOptions } from "./index";
-
+import http,{
+	IncomingMessage,
+	Server as HttpServer,
+	ServerResponse
+} from "http";
+import { Server as ServerSK } from "socket.io"
+import {Socket} from "socket.io/dist/socket";
 
 export class CoreApplication {
 	
-	public server = express();
-	
+	public server;
 	private corsOptions: CorsOptions | CorsOptionsDelegate = {}
 	private controllerClasses: Function[] = prepareController(this.options.controllers);
 	private interceptorsBefore: Interceptor[] = [];
@@ -42,10 +47,20 @@ export class CoreApplication {
 	private middlewares: CoreMiddleware[] = [];
 	private providers: Function[] | undefined = this.options.providers;
 	private appContext: AppContext = new AppContext();
-	private prefix: string;
+	private prefix?: string;
 	private excludePrefix: string[] | undefined = [];
-	
-	constructor(private options: serverOptions) {}
+	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
+	private socketServer: ServerSK;
+
+	constructor(private options: serverOptions) {
+		this.server = express();
+		this.httpServer = http.createServer(this.server);
+
+		if(this.options.SocketIO) {
+			const { SocketIO,socketOptions } = this.options;
+			this.socketServer = new SocketIO(this.httpServer,socketOptions);
+		}
+	}
 	
 	/**
 	 * Registers global middleware functions to be used by the application.
@@ -129,95 +144,117 @@ export class CoreApplication {
 			const prototype = Object.getPrototypeOf(controllerInstance);
 			const methods = Object.getOwnPropertyNames(prototype);
 			const basePath = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER_PATH, ControllerClass);
-			const isController = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER, ControllerClass);
-			
-			if (isController !== DECORATOR_KEY.CONTROLLER) continue;
-			
+			const controllerKey = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER, ControllerClass);
+
+			if (![DECORATOR_KEY.CONTROLLER,DECORATOR_KEY.SOCKET].includes(controllerKey)) continue;
+
 			if (!basePath) {
 				console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
 				continue;
 			}
-			
+
 			const routePath = this.excludePrefix?.includes(basePath) ? basePath : this.prefix ? this.prefix + basePath : basePath;
-			
+
 			for (const methodName of methods) {
 				if (methodName === "constructor") continue;
-				
+
 				const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
 				const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD,prototype,methodName);
-				
+
 				if (typeof controllerInstance[methodName] === "function" && classMethod) {
-					const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance, methodName);
-					const args = [route_path];
-					
-					if (fileUpload) {
-						const multer = require("multer");
-						if(!multer) throw new Error("Invalid multer install");
-						
-						const {
-							keyField,
-							storage,
-							type,
-							limits,
-							dest,
-							preservePath,
-							fileFilter,
-							maxCount
-						} = fileUpload.options as FileUpload;
-						
-						const upload = multer({
-							dest,
-							storage,
-							limits,
-							preservePath,
-							fileFilter
-						});
-						
-						switch (type) {
-							case "single":
-								if (typeof keyField === "string") {
-									args.push(upload.single(keyField));
-								}
-								break;
-							case "array":
-								if (typeof keyField === "string") {
-									args.push(upload.array(keyField, maxCount));
-								}
-								break;
-							case "fields":
-								if (Array.isArray(keyField)) {
-									args.push(upload.fields(keyField));
-								}
-								break;
-							case "any" :
-								args.push(upload.any());
-								break;
-							case "none" :
-								args.push(upload.none());
-								break;
+					// classMethod "event" is socket namespace
+					if(classMethod !== 'event') {
+						const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance, methodName);
+						const args = [route_path];
+
+						if (fileUpload) {
+							const multer = require("multer");
+							if(!multer) throw new Error("Invalid multer install");
+
+							const {
+								keyField,
+								storage,
+								type,
+								limits,
+								dest,
+								preservePath,
+								fileFilter,
+								maxCount
+							} = fileUpload.options as FileUpload;
+
+							const upload = multer({
+								dest,
+								storage,
+								limits,
+								preservePath,
+								fileFilter
+							});
+
+							switch (type) {
+								case "single":
+									if (typeof keyField === "string") {
+										args.push(upload.single(keyField));
+									}
+									break;
+								case "array":
+									if (typeof keyField === "string") {
+										args.push(upload.array(keyField, maxCount));
+									}
+									break;
+								case "fields":
+									if (Array.isArray(keyField)) {
+										args.push(upload.fields(keyField));
+									}
+									break;
+								case "any" :
+									args.push(upload.any());
+									break;
+								case "none" :
+									args.push(upload.none());
+									break;
+							}
 						}
-					}
-					
-					args.push(executeRoute.bind({
-						controllerInstance,
-						methodName,
-						appContext: this.appContext
-					}));
-					
-					// @ts-ignore
-					router[classMethod](...args);
-					if(this.options.enableLogging) {
-						console.log(
-							`\x1b[32m[Route] ${routePath}${route_path} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
-						);
+						args.push(executeRoute.bind({
+							controllerInstance,
+							methodName,
+							appContext: this.appContext
+						}));
+
+						// @ts-ignore
+						router[classMethod](...args);
+						if(this.options.enableLogging) {
+							console.log(
+								`\x1b[32m[Route] ${routePath}${route_path} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
+							);
+						}
+					} else {
+
+						this.socketServer.use((socket, next) => {
+							next();
+						});
+
+						this.socketServer.of(basePath).on("connection", (socket: Socket) => {
+							controllerInstance['onConnect'](socket);
+							socket.on("disconnect", (reason: string) => {
+								controllerInstance['onDisconnect'](socket,reason);
+							});
+							socket.on(route_path,(data: string & JSON & BinaryType ) => {
+								controllerInstance[methodName](data,socket)
+							});
+						});
+
+						if(this.options.enableLogging) {
+							console.log(
+								`\x1b[32m[Socket] ${basePath} [Event] ${route_path} [SocketController] ${ControllerClass.name}.${methodName}\x1b[0m`
+							);
+						}
 					}
 				}
 			}
-			
 			this.server.use(routePath, router);
 		}
 	}
-	
+
 	// Helper method to instantiate controllers with injected providers
 	private instantiateController(ControllerClass: any, providerInstances: Map<any, any>) {
 		const paramTypes: any[] = Reflect.getMetadata("design:paramtypes", ControllerClass) || [];
@@ -324,6 +361,6 @@ export class CoreApplication {
 		this.registerController(this.controllerClasses,this.providers)
 		this.executeInterceptorAfter();
 		this.catch();
-		this.server.listen(port, callback);
+		this.httpServer.listen(port, callback);
 	}
 }
