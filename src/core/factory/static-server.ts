@@ -35,6 +35,7 @@ import http,{
 } from "http";
 import { Server as ServerSK } from "socket.io"
 import {Socket} from "socket.io/dist/socket";
+import multer from "multer";
 
 export class CoreApplication {
 	
@@ -155,15 +156,15 @@ export class CoreApplication {
 
 			const routePath = this.excludePrefix?.includes(basePath) ? basePath : this.prefix ? this.prefix + basePath : basePath;
 
-			for (const methodName of methods) {
-				if (methodName === "constructor") continue;
 
-				const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
-				const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD,prototype,methodName);
+			if(controllerKey === DECORATOR_KEY.CONTROLLER) {
+				for (const methodName of methods) {
+					if (methodName === "constructor") continue;
 
-				if (typeof controllerInstance[methodName] === "function" && classMethod) {
-					// classMethod "event" is socket namespace
-					if(classMethod !== 'event') {
+					const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
+					const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD,prototype,methodName);
+
+					if (typeof controllerInstance[methodName] === "function" && classMethod) {
 						const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance, methodName);
 						const args = [route_path];
 
@@ -227,31 +228,32 @@ export class CoreApplication {
 								`\x1b[32m[Route] ${routePath}${route_path} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
 							);
 						}
-					} else {
-
-						this.socketServer.use((socket, next) => {
-							next();
-						});
-
-						this.socketServer.of(basePath).on("connection", (socket: Socket) => {
-							controllerInstance['onConnect'](socket);
-							socket.on("disconnect", (reason: string) => {
-								controllerInstance['onDisconnect'](socket,reason);
-							});
-							socket.on(route_path,(data: string & JSON & BinaryType ) => {
-								controllerInstance[methodName](data,socket)
-							});
-						});
-
-						if(this.options.enableLogging) {
-							console.log(
-								`\x1b[32m[Socket] ${basePath} [Event] ${route_path} [SocketController] ${ControllerClass.name}.${methodName}\x1b[0m`
-							);
-						}
 					}
 				}
+				this.server.use(routePath, router);
 			}
-			this.server.use(routePath, router);
+
+
+			if(controllerKey === DECORATOR_KEY.SOCKET) {
+				this.socketServer.of(basePath).on("connection", (socket: Socket) => {
+					controllerInstance['onConnect'](socket);
+					socket.on("disconnect", (reason: string) => {
+						controllerInstance['onDisconnect'](socket,reason);
+					});
+					// socket.on(route_path,(data: string & JSON & BinaryType ) => {
+					// 	controllerInstance[methodName](data,socket)
+					// });
+
+					// if(this.options.enableLogging) {
+					// 	console.log(
+					// 		`\x1b[32m[Socket] ${basePath} [Event] ${route_path} [SocketController] ${ControllerClass.name}.${methodName}\x1b[0m`
+					// 	);
+					// }
+				});
+			}
+
+
+
 		}
 	}
 
