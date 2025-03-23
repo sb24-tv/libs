@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SocketObserver = void 0;
 exports.importClassesFromDirectories = importClassesFromDirectories;
 exports.HttpMethod = HttpMethod;
 exports.prepareController = prepareController;
@@ -159,3 +160,27 @@ function executeRoute(request, response, next) {
         }
     });
 }
+// Observer Pattern for Handling Socket Events
+class SocketObserver {
+    constructor() {
+        this.events = new Map();
+    }
+    subscribe(event, callback) {
+        var _a;
+        if (!this.events.has(event)) {
+            this.events.set(event, []);
+        }
+        (_a = this.events.get(event)) === null || _a === void 0 ? void 0 : _a.push(callback);
+    }
+    unsubscribe(event, callback) {
+        if (this.events.has(event)) {
+            this.events.set(event, this.events.get(event).filter(cb => cb !== callback));
+        }
+    }
+    notify(event, data, socket) {
+        if (this.events.has(event)) {
+            this.events.get(event).forEach(callback => callback(data, socket));
+        }
+    }
+}
+exports.SocketObserver = SocketObserver;

@@ -16,6 +16,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DECORATOR_KEY = void 0;
 __exportStar(require("./decorator/Controller"), exports);
+__exportStar(require("./decorator/SocketController"), exports);
 // decorator
 __exportStar(require("./decorator/Res"), exports);
 __exportStar(require("./decorator/Req"), exports);

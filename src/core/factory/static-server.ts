@@ -33,9 +33,7 @@ import http,{
 	Server as HttpServer,
 	ServerResponse
 } from "http";
-import { Server as ServerSK } from "socket.io"
-import {Socket} from "socket.io/dist/socket";
-import multer from "multer";
+import { Server as ServerSK, Socket } from "socket.io"
 
 export class CoreApplication {
 	
@@ -52,11 +50,10 @@ export class CoreApplication {
 	private excludePrefix: string[] | undefined = [];
 	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
 	private socketServer: ServerSK;
-
+	
 	constructor(private options: serverOptions) {
 		this.server = express();
 		this.httpServer = http.createServer(this.server);
-
 		if(this.options.SocketIO) {
 			const { SocketIO,socketOptions } = this.options;
 			this.socketServer = new SocketIO(this.httpServer,socketOptions);
@@ -127,8 +124,11 @@ export class CoreApplication {
 	}
 	
 	private registerController(controllers: any[], providers: Function[] | undefined) {
-		
 		const providerInstances = new Map();
+		const socketEvent= new Map<string,{
+			instance: any,
+			methods: string[]
+		}>();
 		
 		if (providers) {
 			for (const ProviderClass of providers) {
@@ -139,39 +139,42 @@ export class CoreApplication {
 		
 		for (const ControllerClass of controllers) {
 			const router = Router();
-			
 			// Inject providers into the controller constructor
-			const controllerInstance = this.instantiateController(ControllerClass, providerInstances);
+			const controllerInstance = this.instantiateController(ControllerClass,providerInstances);
 			const prototype = Object.getPrototypeOf(controllerInstance);
 			const methods = Object.getOwnPropertyNames(prototype);
-			const basePath = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER_PATH, ControllerClass);
-			const controllerKey = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER, ControllerClass);
-
+			const basePath = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER_PATH,ControllerClass);
+			const controllerKey = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER,ControllerClass);
+			
 			if (![DECORATOR_KEY.CONTROLLER,DECORATOR_KEY.SOCKET].includes(controllerKey)) continue;
 
 			if (!basePath) {
-				console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
-				continue;
+				console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`); continue;
 			}
-
+			
+			if(!socketEvent.has(basePath) && controllerKey === DECORATOR_KEY.SOCKET) {
+				socketEvent.set(basePath,{
+					instance: controllerInstance,
+					methods: []
+				});
+			}
+			// Start config Route Api
 			const routePath = this.excludePrefix?.includes(basePath) ? basePath : this.prefix ? this.prefix + basePath : basePath;
-
-
-			if(controllerKey === DECORATOR_KEY.CONTROLLER) {
-				for (const methodName of methods) {
-					if (methodName === "constructor") continue;
-
-					const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
-					const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD,prototype,methodName);
-
-					if (typeof controllerInstance[methodName] === "function" && classMethod) {
-						const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance, methodName);
+			
+			for (const methodName of methods) {
+				if (methodName === "constructor") continue;
+				const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
+				const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD,prototype,methodName);
+				
+				// classMethod "event" is method socket event
+				if (typeof controllerInstance[methodName] === "function" && classMethod) {
+					if(classMethod !== "event") {
+						const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance,methodName);
 						const args = [route_path];
-
 						if (fileUpload) {
 							const multer = require("multer");
 							if(!multer) throw new Error("Invalid multer install");
-
+							
 							const {
 								keyField,
 								storage,
@@ -182,7 +185,7 @@ export class CoreApplication {
 								fileFilter,
 								maxCount
 							} = fileUpload.options as FileUpload;
-
+							
 							const upload = multer({
 								dest,
 								storage,
@@ -190,7 +193,7 @@ export class CoreApplication {
 								preservePath,
 								fileFilter
 							});
-
+							
 							switch (type) {
 								case "single":
 									if (typeof keyField === "string") {
@@ -220,40 +223,45 @@ export class CoreApplication {
 							methodName,
 							appContext: this.appContext
 						}));
-
 						// @ts-ignore
 						router[classMethod](...args);
 						if(this.options.enableLogging) {
 							console.log(
-								`\x1b[32m[Route] ${routePath}${route_path} [Method] ${classMethod.toUpperCase()} [Controller] ${ControllerClass.name}.${methodName}\x1b[0m`
+								`\x1b[32m[Route]: ${routePath}${route_path} [Method]: ${classMethod.toUpperCase()} [Controller]: ${ControllerClass.name}.${methodName}\x1b[0m`
+							);
+						}
+					} else {
+						socketEvent.get(basePath)?.methods.push(methodName);
+						if(this.options.enableLogging) {
+							console.log(
+								`\x1b[32m[Socket]: ${basePath} [Event]:${route_path} [SocketController]: ${ControllerClass.name}.${methodName}\x1b[0m`
 							);
 						}
 					}
 				}
-				this.server.use(routePath, router);
 			}
-
-
-			if(controllerKey === DECORATOR_KEY.SOCKET) {
-				this.socketServer.of(basePath).on("connection", (socket: Socket) => {
-					controllerInstance['onConnect'](socket);
-					socket.on("disconnect", (reason: string) => {
-						controllerInstance['onDisconnect'](socket,reason);
-					});
-					// socket.on(route_path,(data: string & JSON & BinaryType ) => {
-					// 	controllerInstance[methodName](data,socket)
-					// });
-
-					// if(this.options.enableLogging) {
-					// 	console.log(
-					// 		`\x1b[32m[Socket] ${basePath} [Event] ${route_path} [SocketController] ${ControllerClass.name}.${methodName}\x1b[0m`
-					// 	);
-					// }
+			
+			this.server.use(routePath, router);
+			// Start socket namespace
+			
+			const orderNamespace = this.socketServer.of(basePath);
+			if(this.options.socketMiddleware) orderNamespace.use(this.options.socketMiddleware)
+			
+			const subscribers = socketEvent.get(basePath);
+			
+			if(subscribers) {
+				orderNamespace.on('connection',(socket: Socket) => {
+					subscribers.instance['onConnect'](socket);
+                    socket.on('disconnect',(reason) => subscribers.instance['onDisconnect'](socket,reason));
+					subscribers.methods.forEach((methodName) => {
+						const prototype = Object.getPrototypeOf(subscribers.instance);
+						const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
+						socket.on(event,(data: any) => {
+	                        subscribers.instance[methodName](data,socket)
+                        });
+                    });
 				});
 			}
-
-
-
 		}
 	}
 

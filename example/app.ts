@@ -82,7 +82,10 @@ const app = ServerFactory.createServer({
         Service,
     ],
 	enableLogging: true,
-	SocketIO: Server
+	SocketIO: Server,
+	socketMiddleware: (socket, next) => {
+		next();
+	}
 });
 
 app.enableCors({

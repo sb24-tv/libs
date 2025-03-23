@@ -12,8 +12,10 @@ export declare class CoreApplication {
     private middlewares;
     private providers;
     private appContext;
-    private prefix;
+    private prefix?;
     private excludePrefix;
+    private readonly httpServer;
+    private socketServer;
     constructor(options: serverOptions);
     /**
      * Registers global middleware functions to be used by the application.

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { Socket, DisconnectReason } from "socket.io";
 export interface Action {
     request?: Request;
     response?: Response;
@@ -13,4 +14,8 @@ export interface ErrorInterceptor {
 }
 export interface CoreMiddleware {
     use(req: Request, res: Response, next: NextFunction): void;
+}
+export interface SocketEventsAdapter {
+    onConnect(socket: Socket): void;
+    onDisconnect(socket: Socket, reason: DisconnectReason): void;
 }

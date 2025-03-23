@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DECORATOR_KEY = void 0;
 const DECORATOR_KEY = {
     CONTROLLER_PATH: Symbol('CONTROLLER_PATH'),
+    SK_CONTROLLER_PATH: Symbol('SK_CONTROLLER_PATH'),
     CONTROLLER: Symbol('CONTROLLER'),
+    SOCKET: Symbol('SOCKET'),
     PARAM: Symbol('PARAM'),
     ACTION: Symbol('ACTION'),
     METHOD: Symbol('METHOD'),
