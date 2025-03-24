@@ -123,58 +123,67 @@ export class CoreApplication {
 		});
 	}
 	
-	private registerController(controllers: any[], providers: Function[] | undefined) {
+	private async registerController(controllers: any[], providers: Function[] | undefined) {
 		const providerInstances = new Map();
-		const socketEvent= new Map<string,{
+		const socketEvent = new Map<string, {
 			instance: any,
 			methods: string[]
 		}>();
-		
+
+		const logger: {
+			BasePath?: string,
+			Event?: string,
+			ControllerName?: string,
+			ImplementMethod?: string,
+			Type?: "API" | "SOCKET"
+		}[] = []
+
 		if (providers) {
 			for (const ProviderClass of providers) {
 				// @ts-ignore
 				providerInstances.set(ProviderClass, new ProviderClass());
 			}
 		}
-		
+
 		for (const ControllerClass of controllers) {
 			const router = Router();
 			// Inject providers into the controller constructor
-			const controllerInstance = this.instantiateController(ControllerClass,providerInstances);
+			const controllerInstance = this.instantiateController(ControllerClass, providerInstances);
 			const prototype = Object.getPrototypeOf(controllerInstance);
 			const methods = Object.getOwnPropertyNames(prototype);
-			const basePath = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER_PATH,ControllerClass);
-			const controllerKey = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER,ControllerClass);
-			
-			if (![DECORATOR_KEY.CONTROLLER,DECORATOR_KEY.SOCKET].includes(controllerKey)) continue;
+			const basePath = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER_PATH, ControllerClass);
+			const controllerKey = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER, ControllerClass);
+
+			if (![DECORATOR_KEY.CONTROLLER, DECORATOR_KEY.SOCKET].includes(controllerKey)) continue;
 
 			if (!basePath) {
-				console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`); continue;
+				console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
+				continue;
 			}
-			
-			if(!socketEvent.has(basePath) && controllerKey === DECORATOR_KEY.SOCKET) {
-				socketEvent.set(basePath,{
+
+			if (!socketEvent.has(basePath) && controllerKey === DECORATOR_KEY.SOCKET) {
+				socketEvent.set(basePath, {
 					instance: controllerInstance,
 					methods: []
 				});
 			}
 			// Start config Route Api
 			const routePath = this.excludePrefix?.includes(basePath) ? basePath : this.prefix ? this.prefix + basePath : basePath;
-			
+
 			for (const methodName of methods) {
 				if (methodName === "constructor") continue;
-				const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
-				const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD,prototype,methodName);
+				const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
+				const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD, prototype, methodName);
 
 				if (typeof controllerInstance[methodName] === "function" && classMethod) {
 					// classMethod "event" is method socket event
-					if(classMethod !== "event") {
-						const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD,controllerInstance,methodName);
+					if (classMethod !== "event") {
+						const fileUpload = Reflect.getMetadata(DECORATOR_KEY.FILE_UPLOAD, controllerInstance, methodName);
 						const args = [route_path];
 						if (fileUpload) {
 							const multer = require("multer");
-							if(!multer) throw new Error("Invalid multer install");
-							
+							if (!multer) throw new Error("Invalid multer install");
+
 							const {
 								keyField,
 								storage,
@@ -185,7 +194,7 @@ export class CoreApplication {
 								fileFilter,
 								maxCount
 							} = fileUpload.options as FileUpload;
-							
+
 							const upload = multer({
 								dest,
 								storage,
@@ -193,7 +202,7 @@ export class CoreApplication {
 								preservePath,
 								fileFilter
 							});
-							
+
 							switch (type) {
 								case "single":
 									if (typeof keyField === "string") {
@@ -225,41 +234,62 @@ export class CoreApplication {
 						}));
 						// @ts-ignore
 						router[classMethod](...args);
-						if(this.options.enableLogging) {
-							console.log(
-								`\x1b[32m[Route]: ${routePath}${route_path} [Method]: ${classMethod.toUpperCase()} [Controller]: ${ControllerClass.name}.${methodName}\x1b[0m`
-							);
+						if (this.options.enableLogging) {
+							logger.push({
+								BasePath: `${routePath}${route_path}`,
+								Event: classMethod.toUpperCase(),
+								ControllerName: ControllerClass.name,
+								ImplementMethod: methodName,
+								Type: "API"
+							})
 						}
 					}
 
-					if(classMethod === "event") {
+					if (classMethod === "event") {
 						socketEvent.get(basePath)?.methods.push(methodName);
-						if(this.options.enableLogging) {
-							console.log(
-								`\x1b[32m[Socket]: ${basePath} [Event]:${route_path} [SocketController]: ${ControllerClass.name}.${methodName}\x1b[0m`
-							);
+						if (this.options.enableLogging) {
+							logger.push({
+								BasePath: basePath,
+								Event: route_path,
+								ControllerName: ControllerClass.name,
+								ImplementMethod: methodName,
+								Type: "SOCKET"
+							})
 						}
 					}
 				}
 			}
-			
+
 			this.server.use(routePath, router);
 			// Start socket namespace
-			if(socketEvent.size > 0) {
-				const orderNamespace = this.socketServer.of(basePath);
-				if(this.options.socketMiddleware) orderNamespace.use(this.options.socketMiddleware)
-
+			if (socketEvent.size > 0) {
 				const subscribers = socketEvent.get(basePath);
-
-				if(subscribers) {
-					orderNamespace.on('connection',(socket: Socket) => {
+				const getBusinessId = async () => {
+					if (typeof subscribers?.instance["setBusinessId"] === "function") {
+						return await subscribers.instance.setBusinessId()
+					}
+					return null;
+				}
+				const businessId = await getBusinessId();
+				const socketRoom = businessId !== null ? `${basePath}-${businessId}` : basePath;
+				if(this.options.enableLogging && businessId !== null) {
+					logger.map(value =>  {
+						if(value.BasePath === basePath) {
+                            value.BasePath = socketRoom;
+                        }
+					})
+				}
+				const orderNamespace = this.socketServer.of(socketRoom);
+				if (this.options.socketMiddleware) orderNamespace.use(this.options.socketMiddleware)
+				if (subscribers) {
+					orderNamespace.on('connection', (socket: Socket) => {
 						subscribers.instance['onConnect'](socket);
-						socket.on('disconnect',(reason) => subscribers.instance['onDisconnect'](socket,reason));
+						socket.on('disconnect', (reason) => subscribers.instance['onDisconnect'](socket, reason));
 						subscribers.methods.forEach((methodName) => {
 							const prototype = Object.getPrototypeOf(subscribers.instance);
-							const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH,prototype,methodName) || "";
-							socket.on(event,(data: any) => {
-								subscribers.instance[methodName](data,socket)
+							const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
+							socket.on(event, (data: any) => {
+								subscribers.instance[methodName](data, socket)
 							});
 						});
 					});
@@ -267,6 +297,8 @@ export class CoreApplication {
 			}
 
 		}
+
+		console.table(logger)
 	}
 
 	// Helper method to instantiate controllers with injected providers
@@ -365,14 +397,14 @@ export class CoreApplication {
 		});
 	}
 	
-	public listen(port: number | string, callback: () => void){
+	public async start(port: number | string, callback: () => void) {
 		// Event listeners
 		this.appContext.start();
 		const cors = require("cors");
-		if(cors) this.server.use(cors(this.corsOptions));
+		if (cors) this.server.use(cors(this.corsOptions));
 		this.executeMiddleware();
 		this.executeInterceptorBefore();
-		this.registerController(this.controllerClasses,this.providers)
+		await this.registerController(this.controllerClasses, this.providers);
 		this.executeInterceptorAfter();
 		this.catch();
 		this.httpServer.listen(port, callback);

@@ -32,6 +32,15 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -124,124 +133,155 @@ class CoreApplication {
         });
     }
     registerController(controllers, providers) {
-        var _a, _b;
-        const providerInstances = new Map();
-        const socketEvent = new Map();
-        if (providers) {
-            for (const ProviderClass of providers) {
-                // @ts-ignore
-                providerInstances.set(ProviderClass, new ProviderClass());
-            }
-        }
-        for (const ControllerClass of controllers) {
-            const router = (0, express_1.Router)();
-            // Inject providers into the controller constructor
-            const controllerInstance = this.instantiateController(ControllerClass, providerInstances);
-            const prototype = Object.getPrototypeOf(controllerInstance);
-            const methods = Object.getOwnPropertyNames(prototype);
-            const basePath = Reflect.getMetadata(controller_1.DECORATOR_KEY.CONTROLLER_PATH, ControllerClass);
-            const controllerKey = Reflect.getMetadata(controller_1.DECORATOR_KEY.CONTROLLER, ControllerClass);
-            if (![controller_1.DECORATOR_KEY.CONTROLLER, controller_1.DECORATOR_KEY.SOCKET].includes(controllerKey))
-                continue;
-            if (!basePath) {
-                console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
-                continue;
-            }
-            if (!socketEvent.has(basePath) && controllerKey === controller_1.DECORATOR_KEY.SOCKET) {
-                socketEvent.set(basePath, {
-                    instance: controllerInstance,
-                    methods: []
-                });
-            }
-            // Start config Route Api
-            const routePath = ((_a = this.excludePrefix) === null || _a === void 0 ? void 0 : _a.includes(basePath)) ? basePath : this.prefix ? this.prefix + basePath : basePath;
-            for (const methodName of methods) {
-                if (methodName === "constructor")
-                    continue;
-                const route_path = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
-                const classMethod = Reflect.getMetadata(controller_1.DECORATOR_KEY.METHOD, prototype, methodName);
-                if (typeof controllerInstance[methodName] === "function" && classMethod) {
-                    // classMethod "event" is method socket event
-                    if (classMethod !== "event") {
-                        const fileUpload = Reflect.getMetadata(controller_1.DECORATOR_KEY.FILE_UPLOAD, controllerInstance, methodName);
-                        const args = [route_path];
-                        if (fileUpload) {
-                            const multer = require("multer");
-                            if (!multer)
-                                throw new Error("Invalid multer install");
-                            const { keyField, storage, type, limits, dest, preservePath, fileFilter, maxCount } = fileUpload.options;
-                            const upload = multer({
-                                dest,
-                                storage,
-                                limits,
-                                preservePath,
-                                fileFilter
-                            });
-                            switch (type) {
-                                case "single":
-                                    if (typeof keyField === "string") {
-                                        args.push(upload.single(keyField));
-                                    }
-                                    break;
-                                case "array":
-                                    if (typeof keyField === "string") {
-                                        args.push(upload.array(keyField, maxCount));
-                                    }
-                                    break;
-                                case "fields":
-                                    if (Array.isArray(keyField)) {
-                                        args.push(upload.fields(keyField));
-                                    }
-                                    break;
-                                case "any":
-                                    args.push(upload.any());
-                                    break;
-                                case "none":
-                                    args.push(upload.none());
-                                    break;
-                            }
-                        }
-                        args.push(controller_1.executeRoute.bind({
-                            controllerInstance,
-                            methodName,
-                            appContext: this.appContext
-                        }));
-                        // @ts-ignore
-                        router[classMethod](...args);
-                        if (this.options.enableLogging) {
-                            console.log(`\x1b[32m[Route]: ${routePath}${route_path} [Method]: ${classMethod.toUpperCase()} [Controller]: ${ControllerClass.name}.${methodName}\x1b[0m`);
-                        }
-                    }
-                    if (classMethod === "event") {
-                        (_b = socketEvent.get(basePath)) === null || _b === void 0 ? void 0 : _b.methods.push(methodName);
-                        if (this.options.enableLogging) {
-                            console.log(`\x1b[32m[Socket]: ${basePath} [Event]:${route_path} [SocketController]: ${ControllerClass.name}.${methodName}\x1b[0m`);
-                        }
-                    }
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            const providerInstances = new Map();
+            const socketEvent = new Map();
+            const logger = [];
+            if (providers) {
+                for (const ProviderClass of providers) {
+                    // @ts-ignore
+                    providerInstances.set(ProviderClass, new ProviderClass());
                 }
             }
-            this.server.use(routePath, router);
-            // Start socket namespace
-            if (socketEvent.size > 0) {
-                const orderNamespace = this.socketServer.of(basePath);
-                if (this.options.socketMiddleware)
-                    orderNamespace.use(this.options.socketMiddleware);
-                const subscribers = socketEvent.get(basePath);
-                if (subscribers) {
-                    orderNamespace.on('connection', (socket) => {
-                        subscribers.instance['onConnect'](socket);
-                        socket.on('disconnect', (reason) => subscribers.instance['onDisconnect'](socket, reason));
-                        subscribers.methods.forEach((methodName) => {
-                            const prototype = Object.getPrototypeOf(subscribers.instance);
-                            const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
-                            socket.on(event, (data) => {
-                                subscribers.instance[methodName](data, socket);
-                            });
-                        });
+            for (const ControllerClass of controllers) {
+                const router = (0, express_1.Router)();
+                // Inject providers into the controller constructor
+                const controllerInstance = this.instantiateController(ControllerClass, providerInstances);
+                const prototype = Object.getPrototypeOf(controllerInstance);
+                const methods = Object.getOwnPropertyNames(prototype);
+                const basePath = Reflect.getMetadata(controller_1.DECORATOR_KEY.CONTROLLER_PATH, ControllerClass);
+                const controllerKey = Reflect.getMetadata(controller_1.DECORATOR_KEY.CONTROLLER, ControllerClass);
+                if (![controller_1.DECORATOR_KEY.CONTROLLER, controller_1.DECORATOR_KEY.SOCKET].includes(controllerKey))
+                    continue;
+                if (!basePath) {
+                    console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
+                    continue;
+                }
+                if (!socketEvent.has(basePath) && controllerKey === controller_1.DECORATOR_KEY.SOCKET) {
+                    socketEvent.set(basePath, {
+                        instance: controllerInstance,
+                        methods: []
                     });
                 }
+                // Start config Route Api
+                const routePath = ((_a = this.excludePrefix) === null || _a === void 0 ? void 0 : _a.includes(basePath)) ? basePath : this.prefix ? this.prefix + basePath : basePath;
+                for (const methodName of methods) {
+                    if (methodName === "constructor")
+                        continue;
+                    const route_path = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
+                    const classMethod = Reflect.getMetadata(controller_1.DECORATOR_KEY.METHOD, prototype, methodName);
+                    if (typeof controllerInstance[methodName] === "function" && classMethod) {
+                        // classMethod "event" is method socket event
+                        if (classMethod !== "event") {
+                            const fileUpload = Reflect.getMetadata(controller_1.DECORATOR_KEY.FILE_UPLOAD, controllerInstance, methodName);
+                            const args = [route_path];
+                            if (fileUpload) {
+                                const multer = require("multer");
+                                if (!multer)
+                                    throw new Error("Invalid multer install");
+                                const { keyField, storage, type, limits, dest, preservePath, fileFilter, maxCount } = fileUpload.options;
+                                const upload = multer({
+                                    dest,
+                                    storage,
+                                    limits,
+                                    preservePath,
+                                    fileFilter
+                                });
+                                switch (type) {
+                                    case "single":
+                                        if (typeof keyField === "string") {
+                                            args.push(upload.single(keyField));
+                                        }
+                                        break;
+                                    case "array":
+                                        if (typeof keyField === "string") {
+                                            args.push(upload.array(keyField, maxCount));
+                                        }
+                                        break;
+                                    case "fields":
+                                        if (Array.isArray(keyField)) {
+                                            args.push(upload.fields(keyField));
+                                        }
+                                        break;
+                                    case "any":
+                                        args.push(upload.any());
+                                        break;
+                                    case "none":
+                                        args.push(upload.none());
+                                        break;
+                                }
+                            }
+                            args.push(controller_1.executeRoute.bind({
+                                controllerInstance,
+                                methodName,
+                                appContext: this.appContext
+                            }));
+                            // @ts-ignore
+                            router[classMethod](...args);
+                            if (this.options.enableLogging) {
+                                logger.push({
+                                    BasePath: `${routePath}${route_path}`,
+                                    Event: classMethod.toUpperCase(),
+                                    ControllerName: ControllerClass.name,
+                                    ImplementMethod: methodName,
+                                    Type: "API"
+                                });
+                            }
+                        }
+                        if (classMethod === "event") {
+                            (_b = socketEvent.get(basePath)) === null || _b === void 0 ? void 0 : _b.methods.push(methodName);
+                            if (this.options.enableLogging) {
+                                logger.push({
+                                    BasePath: basePath,
+                                    Event: route_path,
+                                    ControllerName: ControllerClass.name,
+                                    ImplementMethod: methodName,
+                                    Type: "SOCKET"
+                                });
+                            }
+                        }
+                    }
+                }
+                this.server.use(routePath, router);
+                // Start socket namespace
+                if (socketEvent.size > 0) {
+                    const subscribers = socketEvent.get(basePath);
+                    const getBusinessId = () => __awaiter(this, void 0, void 0, function* () {
+                        if (typeof (subscribers === null || subscribers === void 0 ? void 0 : subscribers.instance["setBusinessId"]) === "function") {
+                            return yield subscribers.instance.setBusinessId();
+                        }
+                        return null;
+                    });
+                    const businessId = yield getBusinessId();
+                    const socketRoom = businessId !== null ? `${basePath}-${businessId}` : basePath;
+                    if (this.options.enableLogging && businessId !== null) {
+                        logger.map(value => {
+                            if (value.BasePath === basePath) {
+                                value.BasePath = socketRoom;
+                            }
+                        });
+                    }
+                    const orderNamespace = this.socketServer.of(socketRoom);
+                    if (this.options.socketMiddleware)
+                        orderNamespace.use(this.options.socketMiddleware);
+                    if (subscribers) {
+                        orderNamespace.on('connection', (socket) => {
+                            subscribers.instance['onConnect'](socket);
+                            socket.on('disconnect', (reason) => subscribers.instance['onDisconnect'](socket, reason));
+                            subscribers.methods.forEach((methodName) => {
+                                const prototype = Object.getPrototypeOf(subscribers.instance);
+                                const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
+                                socket.on(event, (data) => {
+                                    subscribers.instance[methodName](data, socket);
+                                });
+                            });
+                        });
+                    }
+                }
             }
-        }
+            console.table(logger);
+        });
     }
     // Helper method to instantiate controllers with injected providers
     instantiateController(ControllerClass, providerInstances) {
@@ -317,18 +357,20 @@ class CoreApplication {
             });
         });
     }
-    listen(port, callback) {
-        // Event listeners
-        this.appContext.start();
-        const cors = require("cors");
-        if (cors)
-            this.server.use(cors(this.corsOptions));
-        this.executeMiddleware();
-        this.executeInterceptorBefore();
-        this.registerController(this.controllerClasses, this.providers);
-        this.executeInterceptorAfter();
-        this.catch();
-        this.httpServer.listen(port, callback);
+    start(port, callback) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Event listeners
+            this.appContext.start();
+            const cors = require("cors");
+            if (cors)
+                this.server.use(cors(this.corsOptions));
+            this.executeMiddleware();
+            this.executeInterceptorBefore();
+            yield this.registerController(this.controllerClasses, this.providers);
+            this.executeInterceptorAfter();
+            this.catch();
+            this.httpServer.listen(port, callback);
+        });
     }
 }
 exports.CoreApplication = CoreApplication;

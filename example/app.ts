@@ -107,7 +107,7 @@ app.useGlobalInterceptors(
 );
 
 const PORT = 3100;
-app.listen(PORT, () => {
+app.start(PORT, () => {
 	console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
 

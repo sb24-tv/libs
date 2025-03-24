@@ -81,5 +81,5 @@ export declare class CoreApplication {
     private executeMiddleware;
     private catch;
     private executeInterceptorAfter;
-    listen(port: number | string, callback: () => void): void;
+    start(port: number | string, callback: () => void): Promise<void>;
 }

@@ -18,4 +18,5 @@ export interface CoreMiddleware {
 export interface SocketEventAdapter {
     onConnect(socket: Socket): void;
     onDisconnect(socket: Socket, reason: DisconnectReason): void;
+    setBusinessId?(): Promise<string>;
 }

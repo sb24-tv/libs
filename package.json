@@ -1,6 +1,6 @@
 {
   "name": "@libs/core",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Core library",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
