@@ -280,7 +280,8 @@ class CoreApplication {
                     }
                 }
             }
-            console.table(logger);
+            if (this.options.enableLogging)
+                console.table(logger);
         });
     }
     // Helper method to instantiate controllers with injected providers
