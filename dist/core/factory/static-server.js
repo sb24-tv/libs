@@ -163,6 +163,15 @@ class CoreApplication {
                         instance: controllerInstance,
                         methods: []
                     });
+                    if (this.options.enableLogging) {
+                        logger.push({
+                            BasePath: basePath,
+                            Event: "ROOT",
+                            ControllerName: ControllerClass.name,
+                            ImplementMethod: "onConnect",
+                            Type: "SOCKET"
+                        });
+                    }
                 }
                 // Start config Route Api
                 const routePath = ((_a = this.excludePrefix) === null || _a === void 0 ? void 0 : _a.includes(basePath)) ? basePath : this.prefix ? this.prefix + basePath : basePath;
