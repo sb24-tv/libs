@@ -15,7 +15,7 @@ export interface ErrorInterceptor {
 export interface CoreMiddleware {
     use(req: Request, res: Response, next: NextFunction): void;
 }
-export interface SocketEventsAdapter {
+export interface SocketEventAdapter {
     onConnect(socket: Socket): void;
     onDisconnect(socket: Socket, reason: DisconnectReason): void;
 }

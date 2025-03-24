@@ -160,8 +160,8 @@ class CoreApplication {
                     continue;
                 const route_path = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
                 const classMethod = Reflect.getMetadata(controller_1.DECORATOR_KEY.METHOD, prototype, methodName);
-                // classMethod "event" is method socket event
                 if (typeof controllerInstance[methodName] === "function" && classMethod) {
+                    // classMethod "event" is method socket event
                     if (classMethod !== "event") {
                         const fileUpload = Reflect.getMetadata(controller_1.DECORATOR_KEY.FILE_UPLOAD, controllerInstance, methodName);
                         const args = [route_path];
@@ -212,7 +212,7 @@ class CoreApplication {
                             console.log(`\x1b[32m[Route]: ${routePath}${route_path} [Method]: ${classMethod.toUpperCase()} [Controller]: ${ControllerClass.name}.${methodName}\x1b[0m`);
                         }
                     }
-                    else {
+                    if (classMethod === "event") {
                         (_b = socketEvent.get(basePath)) === null || _b === void 0 ? void 0 : _b.methods.push(methodName);
                         if (this.options.enableLogging) {
                             console.log(`\x1b[32m[Socket]: ${basePath} [Event]:${route_path} [SocketController]: ${ControllerClass.name}.${methodName}\x1b[0m`);
@@ -222,22 +222,24 @@ class CoreApplication {
             }
             this.server.use(routePath, router);
             // Start socket namespace
-            const orderNamespace = this.socketServer.of(basePath);
-            if (this.options.socketMiddleware)
-                orderNamespace.use(this.options.socketMiddleware);
-            const subscribers = socketEvent.get(basePath);
-            if (subscribers) {
-                orderNamespace.on('connection', (socket) => {
-                    subscribers.instance['onConnect'](socket);
-                    socket.on('disconnect', (reason) => subscribers.instance['onDisconnect'](socket, reason));
-                    subscribers.methods.forEach((methodName) => {
-                        const prototype = Object.getPrototypeOf(subscribers.instance);
-                        const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
-                        socket.on(event, (data) => {
-                            subscribers.instance[methodName](data, socket);
+            if (socketEvent.size > 0) {
+                const orderNamespace = this.socketServer.of(basePath);
+                if (this.options.socketMiddleware)
+                    orderNamespace.use(this.options.socketMiddleware);
+                const subscribers = socketEvent.get(basePath);
+                if (subscribers) {
+                    orderNamespace.on('connection', (socket) => {
+                        subscribers.instance['onConnect'](socket);
+                        socket.on('disconnect', (reason) => subscribers.instance['onDisconnect'](socket, reason));
+                        subscribers.methods.forEach((methodName) => {
+                            const prototype = Object.getPrototypeOf(subscribers.instance);
+                            const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
+                            socket.on(event, (data) => {
+                                subscribers.instance[methodName](data, socket);
+                            });
                         });
                     });
-                });
+                }
             }
         }
     }
