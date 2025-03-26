@@ -300,7 +300,7 @@ export class CoreApplication {
 							const prototype = Object.getPrototypeOf(subscribers.instance);
 							const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
 							socket.on(event, (data: any) => {
-								subscribers.instance[methodName](data, socket)
+								subscribers.instance[methodName](data, orderNamespace)
 							});
 						});
 					});
