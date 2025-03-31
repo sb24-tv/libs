@@ -13,12 +13,6 @@ export default class AppContext {
         eventBus.emit('response', body);
     }
     
-    private reset(){
-        this.interceptor = undefined;
-        this.request = undefined;
-        this.response = undefined;
-    }
-    
     onEmitInterceptor(data: any){
         // Emit an event before processing the request
         eventBus.emit("requestReceived", data);
@@ -41,8 +35,7 @@ export default class AppContext {
                 },
                 data
             ) : data;
-            response.status(200).json(body);
-            this.reset();
+            response.status((response as Response).statusCode).json(body);
         });
     }
     

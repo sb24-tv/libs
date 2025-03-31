@@ -11,7 +11,7 @@ export declare class CoreApplication {
     private interceptorError;
     private middlewares;
     private providers;
-    private appContext;
+    private readonly appContext;
     private prefix?;
     private excludePrefix;
     private readonly httpServer;

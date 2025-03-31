@@ -6,34 +6,37 @@ import { UserDto } from "./dto/user-dto";
 
 @Controller('/role')
 export class RoleController {
-    
-    @Inject()
-    private service: Service;
-    
-    @Get()
-    get() {
-        throw new ConflictError()
-    }
-    
-    @Get('/dd')
-    getName() {
-        let resuly = 0;
-        for(let i = 0; i < 10; i++) {
-            // do something
-            resuly += i;
-        }
-        return resuly
-    }
-    
-    @Post()
-    create(@Body() body: UserDto) {
-        return this.service.create();
-    }
-    
-    @Put()
-    update(@Body() body: UserDto) {
-        return this.service.update(body);
-    }
+	
+	@Inject()
+	private service: Service;
+	
+	@Get('/test-a')
+	get() {
+		return new Promise((resolve) => {
+			setTimeout(() => {
+				resolve("Test A")
+			},3000)
+		})
+	}
+	
+	@Get('/test-b')
+	async getName() {
+		return new Promise((resolve) => {
+			setTimeout(() => {
+				resolve("Test B")
+			},2000)
+		})
+	}
+	
+	@Post()
+	create(@Body() body: UserDto) {
+		return this.service.create();
+	}
+	
+	@Put()
+	update(@Body() body: UserDto) {
+		return this.service.update(body);
+	}
 }
 
 

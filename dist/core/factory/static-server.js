@@ -61,9 +61,9 @@ class CoreApplication {
         this.interceptorError = [];
         this.middlewares = [];
         this.providers = this.options.providers;
-        this.appContext = new AppContext_1.default();
         this.excludePrefix = [];
         this.server = (0, express_1.default)();
+        this.appContext = new AppContext_1.default();
         this.httpServer = http_1.default.createServer(this.server);
         if (this.options.SocketIO) {
             const { SocketIO, socketOptions } = this.options;

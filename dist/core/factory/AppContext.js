@@ -6,11 +6,6 @@ class AppContext {
     sendJsonResponse(body) {
         event_bus_1.eventBus.emit('response', body);
     }
-    reset() {
-        this.interceptor = undefined;
-        this.request = undefined;
-        this.response = undefined;
-    }
     onEmitInterceptor(data) {
         // Emit an event before processing the request
         event_bus_1.eventBus.emit("requestReceived", data);
@@ -27,8 +22,7 @@ class AppContext {
                 response,
                 request
             }, data) : data;
-            response.status(200).json(body);
-            this.reset();
+            response.status(response.statusCode).json(body);
         });
     }
 }

@@ -45,7 +45,7 @@ export class CoreApplication {
 	private interceptorError: ErrorInterceptor[] = [];
 	private middlewares: CoreMiddleware[] = [];
 	private providers: Function[] | undefined = this.options.providers;
-	private appContext: AppContext = new AppContext();
+	private readonly appContext: AppContext;
 	private prefix?: string;
 	private excludePrefix: string[] | undefined = [];
 	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
@@ -53,6 +53,7 @@ export class CoreApplication {
 	
 	constructor(private options: serverOptions) {
 		this.server = express();
+		this.appContext = new AppContext();
 		this.httpServer = http.createServer(this.server);
 		if(this.options.SocketIO) {
 			const { SocketIO,socketOptions } = this.options;

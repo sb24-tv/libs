@@ -137,7 +137,7 @@ export async function executeRoute(this: any, request: Request, response: Respon
 			result.then((data) => {
 				this.appContext.sendJsonResponse({
 					data,
-                    status: 200,
+                    status: response.statusCode,
 					request,
 					response
 				});
@@ -145,7 +145,7 @@ export async function executeRoute(this: any, request: Request, response: Respon
 		} else if (result !== undefined) {
 			this.appContext.sendJsonResponse({
 				data: result,
-				status: 200,
+				status: response.statusCode,
 				request,
 				response
 			});

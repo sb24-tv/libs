@@ -135,7 +135,7 @@ function executeRoute(request, response, next) {
                 result.then((data) => {
                     this.appContext.sendJsonResponse({
                         data,
-                        status: 200,
+                        status: response.statusCode,
                         request,
                         response
                     });
@@ -144,7 +144,7 @@ function executeRoute(request, response, next) {
             else if (result !== undefined) {
                 this.appContext.sendJsonResponse({
                     data: result,
-                    status: 200,
+                    status: response.statusCode,
                     request,
                     response
                 });

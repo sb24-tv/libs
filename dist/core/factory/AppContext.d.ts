@@ -5,7 +5,6 @@ export default class AppContext {
     request: Request | undefined;
     response: Response | undefined;
     sendJsonResponse(body: any): void;
-    private reset;
     onEmitInterceptor(data: any): void;
     start(): void;
 }
