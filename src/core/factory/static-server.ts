@@ -299,8 +299,8 @@ export class CoreApplication {
 						subscribers.methods.forEach((methodName) => {
 							const prototype = Object.getPrototypeOf(subscribers.instance);
 							const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
-							socket.on(event, (data: any) => {
-								subscribers.instance[methodName](data, orderNamespace)
+							socket.on(event, <T>(...args: T[]) => {
+								subscribers.instance[methodName](args, orderNamespace)
 							});
 						});
 					});
