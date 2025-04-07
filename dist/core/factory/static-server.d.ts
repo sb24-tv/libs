@@ -1,6 +1,6 @@
 import { Options, OptionsJson, OptionsUrlencoded, OptionsText } from 'body-parser';
 import { CorsOptions, CorsOptionsDelegate } from "cors";
-import { serverOptions } from "./index";
+import { PathMatcher, serverOptions } from "./index";
 export declare class CoreApplication {
     private options;
     server: import("express-serve-static-core").Express;
@@ -16,6 +16,7 @@ export declare class CoreApplication {
     private excludePrefix;
     private readonly httpServer;
     private socketServer;
+    private skipPaths;
     constructor(options: serverOptions);
     /**
      * Registers global middleware functions to be used by the application.
@@ -77,6 +78,7 @@ export declare class CoreApplication {
         raw?: Options;
         text?: OptionsText;
     }): void;
+    skipMiddlewareCheck(pathsToSkip: PathMatcher[]): void;
     private executeInterceptorBefore;
     private executeMiddleware;
     private catch;

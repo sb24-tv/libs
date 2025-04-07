@@ -1,13 +1,14 @@
 import { NextFunction, Request, Response } from 'express';
 import { Socket, DisconnectReason } from "socket.io";
 export interface Action {
-    request?: Request;
-    response?: Response;
+    request: Request;
+    response: Response;
     next?: NextFunction;
     error?: any;
 }
+export type Context = Pick<Action, "request" | "response">;
 export interface Interceptor {
-    intercept(context: Pick<Action, "request" | "response">, content?: any): object;
+    intercept(context: Context, content?: any): object;
 }
 export interface ErrorInterceptor {
     catch(context: Action): object;

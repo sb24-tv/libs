@@ -62,6 +62,7 @@ class CoreApplication {
         this.middlewares = [];
         this.providers = this.options.providers;
         this.excludePrefix = [];
+        this.skipPaths = [];
         this.server = (0, express_1.default)();
         this.appContext = new AppContext_1.default();
         this.httpServer = http_1.default.createServer(this.server);
@@ -322,15 +323,20 @@ class CoreApplication {
             this.server.use(body_parser_1.default[key](options[key]));
         }
     }
+    skipMiddlewareCheck(pathsToSkip) {
+        this.skipPaths = pathsToSkip;
+    }
     executeInterceptorBefore() {
         if (this.interceptorsBefore.length > 0) {
             this.interceptorsBefore.forEach((interceptor) => {
-                this.server.use((req, _res, next) => {
+                this.server.use((request, response, next) => {
                     this.appContext.onEmitInterceptor({
-                        method: req.method,
-                        url: req.url,
-                        timestamp: new Date(),
-                        interceptor
+                        method: request.method,
+                        url: request.url,
+                        startTime: new Date(),
+                        interceptor,
+                        response,
+                        request
                     });
                     next();
                 });
@@ -352,7 +358,7 @@ class CoreApplication {
                     next
                 });
                 if (data !== undefined) {
-                    response.status(200).json(data);
+                    response.status(response.statusCode).json(data);
                 }
             });
         });
