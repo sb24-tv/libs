@@ -27,7 +27,7 @@ import {
 	CorsOptionsDelegate
 } from "cors";
 import AppContext from "./AppContext";
-import { serverOptions } from "./index";
+import {PathMatcher, serverOptions} from "./index";
 import http,{
 	IncomingMessage,
 	Server as HttpServer,
@@ -50,6 +50,7 @@ export class CoreApplication {
 	private excludePrefix: string[] | undefined = [];
 	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
 	private socketServer: ServerSK;
+	private skipPaths:PathMatcher[] = [];
 	
 	constructor(private options: serverOptions) {
 		this.server = express();
@@ -292,7 +293,7 @@ export class CoreApplication {
 					})
 				}
 				const orderNamespace = this.socketServer.of(socketRoom);
-				if (this.options.socketMiddleware) orderNamespace.use(this.options.socketMiddleware)
+				if (this.options.socketMiddleware) orderNamespace.use(this.options.socketMiddleware);
 				if (subscribers) {
 					orderNamespace.on('connection', (socket: Socket) => {
 						subscribers.instance['onConnect'](socket);
@@ -348,19 +349,25 @@ export class CoreApplication {
 		}
 	}
 	
+	public skipMiddlewareCheck(pathsToSkip: PathMatcher[]) {
+		this.skipPaths = pathsToSkip;
+	}
+	
 	private executeInterceptorBefore() {
 		if(this.interceptorsBefore.length > 0) {
 			this.interceptorsBefore.forEach((interceptor)=> {
 				this.server.use((
-					req,
-					_res,
+					request,
+					response,
 					next
 				) => {
 					this.appContext.onEmitInterceptor({
-						method: req.method,
-						url: req.url,
-						timestamp: new Date(),
-						interceptor
+						method: request.method,
+						url: request.url,
+						startTime: new Date(),
+						interceptor,
+						response,
+						request
 					})
 					next();
 				});
@@ -391,7 +398,7 @@ export class CoreApplication {
 				});
 		
 				if(data !== undefined) {
-					response.status(200).json(data);
+					response.status(response.statusCode).json(data);
 				}
 			});
 		})

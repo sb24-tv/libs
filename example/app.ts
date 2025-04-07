@@ -1,15 +1,22 @@
 import 'reflect-metadata';
 import path from "path";
 import {
-	Action,
+	Action, 
+	Context,
 	ErrorInterceptor,
 	Injectable,
 	Interceptor,
-	ServerFactory
+	ServerFactory,
+	CoreMiddleware
 } from "../src";
 import dotenv from "dotenv";
 dotenv.config();
 import { Server } from "socket.io";
+import {
+	NextFunction,
+	Request,
+	Response
+} from "express";
 
 @Injectable()
 class GlobalErrorInterceptor implements ErrorInterceptor  {
@@ -49,11 +56,11 @@ export class Service {
 @Injectable({type: 'AFTER'})
 export class NotFoundInterceptor implements Interceptor {
 
-	intercept(action: Action){
+	intercept(context: Action){
 		return {
 			message: 'Route Not Found',
-			method: action.request?.method,
-			route: action.request?.path,
+			method: context.request.method,
+			route: context.request.path,
 			success: false,
 			statusCode: 404
 		};
@@ -62,16 +69,23 @@ export class NotFoundInterceptor implements Interceptor {
 @Injectable()
 export class ResponseTransformerInterceptor implements Interceptor  {
 	
-	intercept(action: Action,data: any){
+	intercept(context: Context,data: any){
 		const before = Date.now();
 		return {
 			data,
 			duration: `${Date.now() - before}ms`,
-			method: action.request?.method,
-			route: action.request?.path,
+			method: context.request.method,
+			route: context.request.path,
 			success: true,
-			statusCode: action.response?.statusCode
+			statusCode: context.response.statusCode
 		};
+	}
+}
+
+@Injectable()
+class Middleware implements CoreMiddleware {
+	use(req: Request, res: Response, next: NextFunction): void {
+		next()
 	}
 }
 
@@ -98,13 +112,12 @@ app.enableCors({
 	credentials: true,
 	origin: '*'
 });
-
 app.setBodyParserOptions({
 	urlencoded: {
 		extended: false
 	}
 });
-
+app.useGlobalMiddleware(Middleware)
 app.setGlobalPrefix('/api/v1');
 app.useGlobalInterceptors(
 	ResponseTransformerInterceptor,
@@ -116,11 +129,3 @@ const PORT = 3100;
 app.start(PORT, () => {
 	console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
-
-// (async function () {
-//
-// 	const dd = await fetch('http://localhost:3100/api/v1/role').then(response => response.json());
-// 	// const dddd = await fetch('http://localhost:3100/api/v1/role/dd').then(response => response.json());
-// 	//
-// 	// console.log(dd,dddd)
-// })()

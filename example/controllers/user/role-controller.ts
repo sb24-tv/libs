@@ -21,11 +21,7 @@ export class RoleController {
 	
 	@Get('/test-b')
 	async getName() {
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				resolve("Test B")
-			},2000)
-		})
+		return "test-b"
 	}
 	
 	@Post()
