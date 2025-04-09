@@ -9,6 +9,9 @@ export * from './decorator/Query';
 export * from './decorator/Middleware';
 export * from './decorator/Standard';
 export * from './decorator/FileUpload';
+export * from './decorator/SocketResponse';
+export * from './decorator/SocketData';
+export * from './decorator/SocketInstance';
 
 // utility
 export * from './util/index';

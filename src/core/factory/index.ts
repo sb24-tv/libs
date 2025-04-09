@@ -102,6 +102,7 @@ export type serverOptions = {
 }
 
 export type PathMatcher = string | RegExp;
+export type SocketCallBack<T = any> = (data: T) => void;
 
 export class ServerFactory {
 	static createServer(options: serverOptions): CoreApplication {

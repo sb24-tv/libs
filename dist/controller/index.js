@@ -26,6 +26,9 @@ __exportStar(require("./decorator/Query"), exports);
 __exportStar(require("./decorator/Middleware"), exports);
 __exportStar(require("./decorator/Standard"), exports);
 __exportStar(require("./decorator/FileUpload"), exports);
+__exportStar(require("./decorator/SocketResponse"), exports);
+__exportStar(require("./decorator/SocketData"), exports);
+__exportStar(require("./decorator/SocketInstance"), exports);
 // utility
 __exportStar(require("./util/index"), exports);
 // interface

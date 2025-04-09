@@ -27,13 +27,16 @@ import {
 	CorsOptionsDelegate
 } from "cors";
 import AppContext from "./AppContext";
-import {PathMatcher, serverOptions} from "./index";
+import {PathMatcher, serverOptions, SocketCallBack} from "./index";
 import http,{
 	IncomingMessage,
 	Server as HttpServer,
 	ServerResponse
 } from "http";
 import { Server as ServerSK, Socket } from "socket.io"
+import {plainToInstance} from "class-transformer";
+import {validate} from "class-validator";
+import {HttpError} from "../../http-error-exception";
 
 export class CoreApplication {
 	
@@ -127,10 +130,7 @@ export class CoreApplication {
 	
 	private async registerController(controllers: any[], providers: Function[] | undefined) {
 		const providerInstances = new Map();
-		const socketEvent = new Map<string, {
-			instance: any,
-			methods: string[]
-		}>();
+		const socketEvent = new Map<string, { instance: any, methods: string[] }>();
 
 		const logger: {
 			BasePath?: string,
@@ -138,7 +138,7 @@ export class CoreApplication {
 			ControllerName?: string,
 			ImplementMethod?: string,
 			Type?: "API" | "SOCKET"
-		}[] = []
+		}[] = [];
 
 		if (providers) {
 			for (const ProviderClass of providers) {
@@ -300,9 +300,29 @@ export class CoreApplication {
 						socket.on('disconnect', (reason) => subscribers.instance['onDisconnect'](socket, reason));
 						subscribers.methods.forEach((methodName) => {
 							const prototype = Object.getPrototypeOf(subscribers.instance);
-							const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
-							socket.on(event, <T>(...args: T[]) => {
-								subscribers.instance[methodName](args, orderNamespace)
+							const socketIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_INSTANCE,controllerInstance,methodName);
+							const callBackIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_CALLBACK,controllerInstance,methodName);
+							const dataIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_DATA,controllerInstance,methodName);
+							const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName);
+							const argData: any[] = [];
+							socket.on(event, async<T>(data: T,callback: SocketCallBack)  => {
+								if (socketIndex !== undefined) argData[socketIndex] = orderNamespace;
+								if (callBackIndex !== undefined) argData[callBackIndex] = callback;
+								if (dataIndex !== undefined) {
+									const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance,methodName);
+									const ResBodyTypeOptions = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance,methodName);
+									if (ResBodyType) {
+										const instance: any = plainToInstance(ResBodyType,data,ResBodyTypeOptions);
+										const errors = await validate(instance);
+										if (errors.length > 0) {
+											const error = new HttpError('Validation Error', 403, errors[0]);
+											error.stack = errors[0].toString();
+											return callback(error);
+										}
+									}
+									argData[dataIndex] = data;
+								}
+								subscribers.instance[methodName](...argData);
 							});
 						});
 					});

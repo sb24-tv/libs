@@ -10,8 +10,4 @@ export class UserDto {
   
     @IsNumber()
     phone?: number;
-    
-    files?: string;
-    
-    file?: string
 }

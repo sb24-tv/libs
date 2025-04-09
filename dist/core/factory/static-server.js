@@ -51,6 +51,9 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const controller_1 = require("../../controller");
 const AppContext_1 = __importDefault(require("./AppContext"));
 const http_1 = __importDefault(require("http"));
+const class_transformer_1 = require("class-transformer");
+const class_validator_1 = require("class-validator");
+const http_error_exception_1 = require("../../http-error-exception");
 class CoreApplication {
     constructor(options) {
         this.options = options;
@@ -281,10 +284,32 @@ class CoreApplication {
                             socket.on('disconnect', (reason) => subscribers.instance['onDisconnect'](socket, reason));
                             subscribers.methods.forEach((methodName) => {
                                 const prototype = Object.getPrototypeOf(subscribers.instance);
-                                const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
-                                socket.on(event, (...args) => {
-                                    subscribers.instance[methodName](args, orderNamespace);
-                                });
+                                const socketIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_INSTANCE, controllerInstance, methodName);
+                                const callBackIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_CALLBACK, controllerInstance, methodName);
+                                const dataIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_DATA, controllerInstance, methodName);
+                                const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName);
+                                const argData = [];
+                                socket.on(event, (data, callback) => __awaiter(this, void 0, void 0, function* () {
+                                    if (socketIndex !== undefined)
+                                        argData[socketIndex] = orderNamespace;
+                                    if (callBackIndex !== undefined)
+                                        argData[callBackIndex] = callback;
+                                    if (dataIndex !== undefined) {
+                                        const ResBodyType = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
+                                        const ResBodyTypeOptions = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance, methodName);
+                                        if (ResBodyType) {
+                                            const instance = (0, class_transformer_1.plainToInstance)(ResBodyType, data, ResBodyTypeOptions);
+                                            const errors = yield (0, class_validator_1.validate)(instance);
+                                            if (errors.length > 0) {
+                                                const error = new http_error_exception_1.HttpError('Validation Error', 403, errors[0]);
+                                                error.stack = errors[0].toString();
+                                                return callback(error);
+                                            }
+                                        }
+                                        argData[dataIndex] = data;
+                                    }
+                                    subscribers.instance[methodName](...argData);
+                                }));
                             });
                         });
                     }

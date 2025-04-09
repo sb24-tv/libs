@@ -99,6 +99,7 @@ export type serverOptions = {
     socketMiddleware?: (socket: Socket, next: (err?: ExtendedError) => void) => void;
 };
 export type PathMatcher = string | RegExp;
+export type SocketCallBack<T = any> = (data: T) => void;
 export declare class ServerFactory {
     static createServer(options: serverOptions): CoreApplication;
 }
