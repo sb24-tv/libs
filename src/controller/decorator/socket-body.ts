@@ -1,7 +1,7 @@
 import { DECORATOR_KEY } from "../constant/decorator-key";
 import {ClassTransformOptions} from "class-transformer/types/interfaces";
 
-export function SocketData(options?: ClassTransformOptions) {
+export function SocketBody(options?: ClassTransformOptions) {
 	return function (target: any, propertyKey: string | symbol, parameterIndex: number) {
 		Reflect.defineMetadata(DECORATOR_KEY.SOCKET_DATA, parameterIndex, target, propertyKey);
 		const paramTypes = Reflect.getMetadata("design:paramtypes", target, propertyKey);

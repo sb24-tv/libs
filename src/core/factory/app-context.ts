@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { Interceptor } from "../../controller";
 import { eventBus } from "./event-bus";
 import { EmitInterceptor, SendJsonResponse } from "./index";
+import { Interceptor } from "../../interface";
 
 export default class AppContext {
     

@@ -1,6 +1,6 @@
 import path from 'path';
 import { DECORATOR_KEY } from "../constant/decorator-key";
-import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../interface";
+import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../../interface";
 import { NextFunction, Request, Response } from "express";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";

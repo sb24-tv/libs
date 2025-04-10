@@ -2,25 +2,32 @@ import {
 	SocketController,
 	SocketEventAdapter,
 	SocketEvent,
-	SocketData,
+	SocketBody,
 	SocketResponse,
 	SocketCallBack,
-	SocketInstance
+	SocketInstance, Inject
 } from "../../src";
-import {Socket} from "socket.io";
-import {UserDto} from "./user/dto/user-dto";
+import { Socket } from "socket.io";
+import { UserDto } from "./user/dto/user-dto";
+import { Service } from "../app";
 
 @SocketController('/waiter')
 export class UserSocketController implements SocketEventAdapter {
+	
+	constructor(private service: Service) {}
+	
+	@Inject()
+	private serviceV2: Service;
+	
     @SocketEvent('confirm')
-    handleConfirm(@SocketData() data: UserDto,@SocketInstance() socket: Socket): void {
+    handleConfirm(@SocketBody() data: UserDto, @SocketInstance() socket: Socket): void {
         console.log('Order received',{data});
         socket.emit('cook',data);
     }
 
     @SocketEvent('pick')
     handlePickOder(
-		@SocketData() data: UserDto,
+		@SocketBody() data: UserDto,
 		@SocketResponse() res: SocketCallBack) {
         console.log('pick food',data);
 	    res({
@@ -30,7 +37,8 @@ export class UserSocketController implements SocketEventAdapter {
     }
 
     onConnect(socket: Socket): void {
-        console.log('Root client connected',socket.id);
+        console.log('dd',this.service.create());
+        console.log('gg',this.serviceV2.create());
     }
 
     onDisconnect(socket: Socket,reason:string): void {

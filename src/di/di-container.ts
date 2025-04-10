@@ -1,18 +1,16 @@
-class DIContainer {
-	private static instance: DIContainer;
-	private services = new Map<any, any>(); // Maps classes to their implementations
-	private instances = new Map<any, any>(); // Maps classes to their singleton instances
+class DiContainer {
+	private static instance: DiContainer;
+	private services = new Map(); // Maps classes to their implementations
+	private instances = new Map(); // Maps classes to their singleton instances
 	
-	private constructor() {} // Prevent direct instantiation
-	
-	static getInstance(): DIContainer {
-		if (!DIContainer.instance) {
-			DIContainer.instance = new DIContainer();
+	static getInstance(): DiContainer {
+		if (!DiContainer.instance) {
+			DiContainer.instance = new DiContainer();
 		}
-		return DIContainer.instance;
+		return DiContainer.instance;
 	}
 	
-	register<T>(target: { new (...args: any[]): T },): void {
+	register<T>(target: { new (...args: any[]): T }): void {
 		this.services.set(target, target);
 	}
 	
@@ -43,4 +41,4 @@ class DIContainer {
 	}
 }
 // Get the singleton instance of the DIContainer
-export const container = DIContainer.getInstance();
+export const container = DiContainer.getInstance();

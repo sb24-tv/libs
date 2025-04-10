@@ -1,63 +1,51 @@
 import HttpError from "./http-error";
+import { HttpStatusCode } from "../enums/http-code";
 
 class BadRequestError extends HttpError {
 	constructor(message = "Bad Request", details?: any) {
-		super(message, 400, details);
+		super(message, HttpStatusCode.BAD_REQUEST, details);
 	}
 }
 
 class UnauthorizedError extends HttpError {
 	constructor(message = "Unauthorized", details?: any) {
-		super(message, 401, details);
+		super(message, HttpStatusCode.UNAUTHORIZED, details);
 	}
 }
 
 class ForbiddenError extends HttpError {
 	constructor(message = "Forbidden", details?: any) {
-		super(message, 403, details);
+		super(message, HttpStatusCode.FORBIDDEN, details);
 	}
 }
 
 class NotFoundError extends HttpError {
 	constructor(message = "Not Found", details?: any) {
-		super(message, 404, details);
+		super(message, HttpStatusCode.NOT_FOUND, details);
 	}
 }
 
 class ConflictError extends HttpError {
 	constructor(message = "Conflict", details?: any) {
-		super(message, 409, details);
+		super(message, HttpStatusCode.CONFLICT, details);
 	}
 }
 
 class InternalServerError extends HttpError {
 	constructor(message = "Internal Server Error", details?: any) {
-		super(message, 500, details);
-	}
-}
-
-class UnprocessableEntityError extends HttpError {
-	constructor(message = "Unprocessable Entity", details?: any) {
-		super(message, 422, details);
+		super(message, HttpStatusCode.INTERNAL_SERVER_ERROR, details);
 	}
 }
 
 class TooManyRequestsError extends HttpError {
 	constructor(message = "Too Many Requests", details?: any) {
-		super(message, 429, details);
-	}
-}
-
-
-class ServiceUnavailableError extends HttpError {
-	constructor(message = "Service Unavailable", details?: any) {
-		super(message, 503, details);
+		super(message, HttpStatusCode.TOO_MANY_REQUEST_ERROR, details);
 	}
 }
 
 class GatewayTimeoutError extends HttpError {
 	constructor(message = "Gateway Timeout", details?: any) {
-		super(message, 504, details);
+		super(message, HttpStatusCode.GATEWAY_TIMEOUT_ERROR, details);
 	}
 }
 
@@ -69,8 +57,6 @@ export {
 	NotFoundError,
 	ForbiddenError,
 	UnauthorizedError,
-	UnprocessableEntityError,
 	TooManyRequestsError,
-	ServiceUnavailableError,
 	GatewayTimeoutError
 }

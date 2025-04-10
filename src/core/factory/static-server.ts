@@ -11,12 +11,9 @@ import bodyParser, {
 	OptionsText
 } from 'body-parser';
 import {
-	CoreMiddleware,
 	DECORATOR_KEY,
-	ErrorInterceptor,
 	executeRoute,
 	FileUpload,
-	Interceptor,
 	isInterceptor,
 	isInterceptorError,
 	isMiddleware,
@@ -26,17 +23,29 @@ import {
 	CorsOptions,
 	CorsOptionsDelegate
 } from "cors";
-import AppContext from "./AppContext";
-import {PathMatcher, serverOptions, SocketCallBack} from "./index";
+import AppContext from "./app-context";
+import { serverOptions } from "./index";
 import http,{
 	IncomingMessage,
 	Server as HttpServer,
 	ServerResponse
 } from "http";
 import { Server as ServerSK, Socket } from "socket.io"
-import {plainToInstance} from "class-transformer";
-import {validate} from "class-validator";
-import {HttpError} from "../../http-error-exception";
+import { plainToInstance } from "class-transformer";
+import { validate } from "class-validator";
+import { HttpError } from "../../http-error-exception";
+import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../../interface";
+import { PathMatcher, SocketCallBack } from "../../type";
+import { HttpStatusCode } from "../../enums/http-code";
+import { container } from "../../di";
+
+type LogType = {
+	BasePath?: string,
+	Event?: string,
+	ControllerName?: string,
+	ImplementMethod?: string,
+	Type?: "API" | "SOCKET"
+}
 
 export class CoreApplication {
 	
@@ -53,15 +62,14 @@ export class CoreApplication {
 	private excludePrefix: string[] | undefined = [];
 	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
 	private socketServer: ServerSK;
-	private skipPaths:PathMatcher[] = [];
 	
 	constructor(private options: serverOptions) {
 		this.server = express();
 		this.appContext = new AppContext();
 		this.httpServer = http.createServer(this.server);
-		if(this.options.SocketIO) {
-			const { SocketIO,socketOptions } = this.options;
-			this.socketServer = new SocketIO(this.httpServer,socketOptions);
+		if (this.options.SocketIO) {
+			const { SocketIO, socketOptions } = this.options;
+			this.socketServer = new SocketIO(this.httpServer, socketOptions);
 		}
 	}
 	
@@ -129,46 +137,37 @@ export class CoreApplication {
 	}
 	
 	private async registerController(controllers: any[], providers: Function[] | undefined) {
-		const providerInstances = new Map();
 		const socketEvent = new Map<string, { instance: any, methods: string[] }>();
-
-		const logger: {
-			BasePath?: string,
-			Event?: string,
-			ControllerName?: string,
-			ImplementMethod?: string,
-			Type?: "API" | "SOCKET"
-		}[] = [];
-
+		const logger: LogType[] = [];
+		
 		if (providers) {
 			for (const ProviderClass of providers) {
-				// @ts-ignore
-				providerInstances.set(ProviderClass, new ProviderClass());
+				container.register(ProviderClass as any)
 			}
 		}
-
+		
 		for (const ControllerClass of controllers) {
 			const router = Router();
 			// Inject providers into the controller constructor
-			const controllerInstance = this.instantiateController(ControllerClass, providerInstances);
+			const controllerInstance = this.instantiateController(ControllerClass);
 			const prototype = Object.getPrototypeOf(controllerInstance);
 			const methods = Object.getOwnPropertyNames(prototype);
 			const basePath = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER_PATH, ControllerClass);
 			const controllerKey = Reflect.getMetadata(DECORATOR_KEY.CONTROLLER, ControllerClass);
-
+			
 			if (![DECORATOR_KEY.CONTROLLER, DECORATOR_KEY.SOCKET].includes(controllerKey)) continue;
-
+			
 			if (!basePath) {
 				console.warn(`\x1b[43m [Warning] Controller ${ControllerClass.name} is missing a base path. \x1b[0m`);
 				continue;
 			}
-
+			
 			if (!socketEvent.has(basePath) && controllerKey === DECORATOR_KEY.SOCKET) {
 				socketEvent.set(basePath, {
 					instance: controllerInstance,
 					methods: []
 				});
-
+				
 				if (this.options.enableLogging) {
 					logger.push({
 						BasePath: basePath,
@@ -178,16 +177,16 @@ export class CoreApplication {
 						Type: "SOCKET"
 					});
 				}
-
+				
 			}
 			// Start config Route Api
 			const routePath = this.excludePrefix?.includes(basePath) ? basePath : this.prefix ? this.prefix + basePath : basePath;
-
+			
 			for (const methodName of methods) {
 				if (methodName === "constructor") continue;
 				const route_path = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName) || "";
 				const classMethod = Reflect.getMetadata(DECORATOR_KEY.METHOD, prototype, methodName);
-
+				
 				if (typeof controllerInstance[methodName] === "function" && classMethod) {
 					// classMethod "event" is method socket event
 					if (classMethod !== "event") {
@@ -196,7 +195,7 @@ export class CoreApplication {
 						if (fileUpload) {
 							const multer = require("multer");
 							if (!multer) throw new Error("Invalid multer install");
-
+							
 							const {
 								keyField,
 								storage,
@@ -207,7 +206,7 @@ export class CoreApplication {
 								fileFilter,
 								maxCount
 							} = fileUpload.options as FileUpload;
-
+							
 							const upload = multer({
 								dest,
 								storage,
@@ -215,7 +214,7 @@ export class CoreApplication {
 								preservePath,
 								fileFilter
 							});
-
+							
 							switch (type) {
 								case "single":
 									if (typeof keyField === "string") {
@@ -257,7 +256,7 @@ export class CoreApplication {
 							})
 						}
 					}
-
+					
 					if (classMethod === "event") {
 						socketEvent.get(basePath)?.methods.push(methodName);
 						if (this.options.enableLogging) {
@@ -272,7 +271,7 @@ export class CoreApplication {
 					}
 				}
 			}
-
+			
 			this.server.use(routePath, router);
 			// Start socket namespace
 			if (socketEvent.size > 0) {
@@ -285,11 +284,11 @@ export class CoreApplication {
 				}
 				const businessId = await getBusinessId();
 				const socketRoom = businessId !== null ? `${basePath}-${businessId}` : basePath;
-				if(this.options.enableLogging && businessId !== null) {
-					logger.map(value =>  {
-						if(value.BasePath === basePath) {
-                            value.BasePath = socketRoom;
-                        }
+				if (this.options.enableLogging && businessId !== null) {
+					logger.map(value => {
+						if (value.BasePath === basePath) {
+							value.BasePath = socketRoom;
+						}
 					})
 				}
 				const orderNamespace = this.socketServer.of(socketRoom);
@@ -300,43 +299,47 @@ export class CoreApplication {
 						socket.on('disconnect', (reason) => subscribers.instance['onDisconnect'](socket, reason));
 						subscribers.methods.forEach((methodName) => {
 							const prototype = Object.getPrototypeOf(subscribers.instance);
-							const socketIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_INSTANCE,controllerInstance,methodName);
-							const callBackIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_CALLBACK,controllerInstance,methodName);
-							const dataIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_DATA,controllerInstance,methodName);
+							const socketIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_INSTANCE, controllerInstance, methodName);
+							const callBackIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_CALLBACK, controllerInstance, methodName);
+							const dataIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_DATA, controllerInstance, methodName);
 							const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName);
-							const argData: any[] = [];
-							socket.on(event, async<T>(data: T,callback: SocketCallBack)  => {
-								if (socketIndex !== undefined) argData[socketIndex] = orderNamespace;
-								if (callBackIndex !== undefined) argData[callBackIndex] = callback;
-								if (dataIndex !== undefined) {
-									const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance,methodName);
-									const ResBodyTypeOptions = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance,methodName);
-									if (ResBodyType) {
-										const instance: any = plainToInstance(ResBodyType,data,ResBodyTypeOptions);
-										const errors = await validate(instance);
-										if (errors.length > 0) {
-											const error = new HttpError('Validation Error', 403, errors[0]);
-											error.stack = errors[0].toString();
-											return callback(error);
+							const args: any[] = [];
+							socket.on(event, async <T>(data: T, callback: SocketCallBack) => {
+								try {
+									if (socketIndex !== undefined) args[socketIndex] = orderNamespace;
+									if (callBackIndex !== undefined) args[callBackIndex] = callback;
+									if (dataIndex !== undefined) {
+										const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
+										const ResBodyTypeOptions = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance, methodName);
+										if (ResBodyType) {
+											const instance: any = plainToInstance(ResBodyType, data, ResBodyTypeOptions);
+											const errors = await validate(instance);
+											if (errors.length > 0) {
+												const error = new HttpError('Validation Error', HttpStatusCode.FORBIDDEN, errors[0]);
+												error.stack = JSON.stringify(errors[0]);
+												return callback(error);
+											}
 										}
+										args[dataIndex] = data;
 									}
-									argData[dataIndex] = data;
+									await subscribers.instance[methodName](...args);
+								} catch (e) {
+									return callback(e);
 								}
-								subscribers.instance[methodName](...argData);
 							});
 						});
 					});
 				}
 			}
-
 		}
-		if(this.options.enableLogging) console.table(logger);
+		
+		if (this.options.enableLogging) console.table(logger);
 	}
-
+	
 	// Helper method to instantiate controllers with injected providers
-	private instantiateController(ControllerClass: any, providerInstances: Map<any, any>) {
+	private instantiateController(ControllerClass: any) {
 		const paramTypes: any[] = Reflect.getMetadata("design:paramtypes", ControllerClass) || [];
-		const dependencies = paramTypes.map(type => providerInstances.get(type) || null);
+		const dependencies = paramTypes.map(type => container.resolve(type) || null);
 		return new ControllerClass(...dependencies);
 	}
 	
@@ -370,7 +373,6 @@ export class CoreApplication {
 	}
 	
 	public skipMiddlewareCheck(pathsToSkip: PathMatcher[]) {
-		this.skipPaths = pathsToSkip;
 	}
 	
 	private executeInterceptorBefore() {

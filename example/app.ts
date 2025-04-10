@@ -43,7 +43,7 @@ class GlobalErrorInterceptor implements ErrorInterceptor  {
 @Injectable()
 export class Service {
 
-	async create() {
+	create() {
 		return "Service created";
 	}
 

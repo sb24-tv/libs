@@ -1,4 +1,4 @@
-import { container } from "../DIContainer";
+import { container } from "../di-container";
 import { DECORATOR_KEY } from "../../controller";
 
 export type Options  = {
@@ -10,7 +10,6 @@ export function Injectable(options?: Options): ClassDecorator {
 	return (target) => {
 		const classMethods = Object.getOwnPropertyNames(target.prototype);
 		container.register(target as any); // register dependencies injection
-		
 		// register interceptors and middleware if defined
 		if(classMethods.includes('intercept') || classMethods.includes('catch')) {
 			switch (options?.type) {
