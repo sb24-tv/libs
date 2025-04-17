@@ -1,8 +1,9 @@
-import { Body, ConflictError, Controller, Get, Post, Put } from "../../../src";
+import {Body, Res, Controller, Get, Post, Put, Req} from "../../../src";
 
 import { Service } from "../../app";
 import { Inject } from "../../../src";
 import { UserDto } from "./dto/user-dto";
+
 
 @Controller('/role')
 export class RoleController {
@@ -30,7 +31,7 @@ export class RoleController {
 	}
 	
 	@Put()
-	update(@Body() body: UserDto) {
+	update(@Body() body: UserDto,@Req() res: any) {
 		return this.service.update(body);
 	}
 }
