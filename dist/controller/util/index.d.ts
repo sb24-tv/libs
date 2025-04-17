@@ -1,4 +1,4 @@
-import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../interface";
+import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../../interface";
 import { NextFunction, Request, Response } from "express";
 type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch' | 'event';
 /**

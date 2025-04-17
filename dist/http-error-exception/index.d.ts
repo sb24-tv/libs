@@ -17,16 +17,10 @@ declare class ConflictError extends HttpError {
 declare class InternalServerError extends HttpError {
     constructor(message?: string, details?: any);
 }
-declare class UnprocessableEntityError extends HttpError {
-    constructor(message?: string, details?: any);
-}
 declare class TooManyRequestsError extends HttpError {
-    constructor(message?: string, details?: any);
-}
-declare class ServiceUnavailableError extends HttpError {
     constructor(message?: string, details?: any);
 }
 declare class GatewayTimeoutError extends HttpError {
     constructor(message?: string, details?: any);
 }
-export { HttpError, InternalServerError, ConflictError, BadRequestError, NotFoundError, ForbiddenError, UnauthorizedError, UnprocessableEntityError, TooManyRequestsError, ServiceUnavailableError, GatewayTimeoutError };
+export { HttpError, InternalServerError, ConflictError, BadRequestError, NotFoundError, ForbiddenError, UnauthorizedError, TooManyRequestsError, GatewayTimeoutError };

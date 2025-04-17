@@ -49,11 +49,13 @@ exports.CoreApplication = void 0;
 const express_1 = __importStar(require("express"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const controller_1 = require("../../controller");
-const AppContext_1 = __importDefault(require("./AppContext"));
+const app_context_1 = __importDefault(require("./app-context"));
 const http_1 = __importDefault(require("http"));
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 const http_error_exception_1 = require("../../http-error-exception");
+const http_code_1 = require("../../enums/http-code");
+const di_1 = require("../../di");
 class CoreApplication {
     constructor(options) {
         this.options = options;
@@ -65,9 +67,8 @@ class CoreApplication {
         this.middlewares = [];
         this.providers = this.options.providers;
         this.excludePrefix = [];
-        this.skipPaths = [];
         this.server = (0, express_1.default)();
-        this.appContext = new AppContext_1.default();
+        this.appContext = new app_context_1.default();
         this.httpServer = http_1.default.createServer(this.server);
         if (this.options.SocketIO) {
             const { SocketIO, socketOptions } = this.options;
@@ -139,19 +140,17 @@ class CoreApplication {
     registerController(controllers, providers) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b;
-            const providerInstances = new Map();
             const socketEvent = new Map();
             const logger = [];
             if (providers) {
                 for (const ProviderClass of providers) {
-                    // @ts-ignore
-                    providerInstances.set(ProviderClass, new ProviderClass());
+                    di_1.container.register(ProviderClass);
                 }
             }
             for (const ControllerClass of controllers) {
                 const router = (0, express_1.Router)();
                 // Inject providers into the controller constructor
-                const controllerInstance = this.instantiateController(ControllerClass, providerInstances);
+                const controllerInstance = this.instantiateController(ControllerClass);
                 const prototype = Object.getPrototypeOf(controllerInstance);
                 const methods = Object.getOwnPropertyNames(prototype);
                 const basePath = Reflect.getMetadata(controller_1.DECORATOR_KEY.CONTROLLER_PATH, ControllerClass);
@@ -288,27 +287,32 @@ class CoreApplication {
                                 const callBackIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_CALLBACK, controllerInstance, methodName);
                                 const dataIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_DATA, controllerInstance, methodName);
                                 const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName);
-                                const argData = [];
+                                const args = [];
                                 socket.on(event, (data, callback) => __awaiter(this, void 0, void 0, function* () {
-                                    if (socketIndex !== undefined)
-                                        argData[socketIndex] = orderNamespace;
-                                    if (callBackIndex !== undefined)
-                                        argData[callBackIndex] = callback;
-                                    if (dataIndex !== undefined) {
-                                        const ResBodyType = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
-                                        const ResBodyTypeOptions = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance, methodName);
-                                        if (ResBodyType) {
-                                            const instance = (0, class_transformer_1.plainToInstance)(ResBodyType, data, ResBodyTypeOptions);
-                                            const errors = yield (0, class_validator_1.validate)(instance);
-                                            if (errors.length > 0) {
-                                                const error = new http_error_exception_1.HttpError('Validation Error', 403, errors[0]);
-                                                error.stack = errors[0].toString();
-                                                return callback(error);
+                                    try {
+                                        if (socketIndex !== undefined)
+                                            args[socketIndex] = orderNamespace;
+                                        if (callBackIndex !== undefined)
+                                            args[callBackIndex] = callback;
+                                        if (dataIndex !== undefined) {
+                                            const ResBodyType = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
+                                            const ResBodyTypeOptions = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance, methodName);
+                                            if (ResBodyType) {
+                                                const instance = (0, class_transformer_1.plainToInstance)(ResBodyType, data, ResBodyTypeOptions);
+                                                const errors = yield (0, class_validator_1.validate)(instance);
+                                                if (errors.length > 0) {
+                                                    const error = new http_error_exception_1.HttpError('Validation Error', http_code_1.HttpStatusCode.FORBIDDEN, errors[0]);
+                                                    error.stack = JSON.stringify(errors[0]);
+                                                    return callback(error);
+                                                }
                                             }
+                                            args[dataIndex] = data;
                                         }
-                                        argData[dataIndex] = data;
+                                        yield subscribers.instance[methodName](...args);
                                     }
-                                    subscribers.instance[methodName](...argData);
+                                    catch (e) {
+                                        return callback(e);
+                                    }
                                 }));
                             });
                         });
@@ -320,9 +324,9 @@ class CoreApplication {
         });
     }
     // Helper method to instantiate controllers with injected providers
-    instantiateController(ControllerClass, providerInstances) {
+    instantiateController(ControllerClass) {
         const paramTypes = Reflect.getMetadata("design:paramtypes", ControllerClass) || [];
-        const dependencies = paramTypes.map(type => providerInstances.get(type) || null);
+        const dependencies = paramTypes.map(type => di_1.container.resolve(type) || null);
         return new ControllerClass(...dependencies);
     }
     /**
@@ -348,8 +352,8 @@ class CoreApplication {
             this.server.use(body_parser_1.default[key](options[key]));
         }
     }
-    skipMiddlewareCheck(pathsToSkip) {
-        this.skipPaths = pathsToSkip;
+    setRateLimit(options) {
+        this.rateLimitOptions = options;
     }
     executeInterceptorBefore() {
         if (this.interceptorsBefore.length > 0) {
@@ -403,8 +407,11 @@ class CoreApplication {
             // Event listeners
             this.appContext.start();
             const cors = require("cors");
+            const rateLimit = require("express-rate-limit");
             if (cors)
                 this.server.use(cors(this.corsOptions));
+            if (rateLimit)
+                this.server.use(rateLimit(this.rateLimitOptions));
             this.executeMiddleware();
             this.executeInterceptorBefore();
             yield this.registerController(this.controllerClasses, this.providers);

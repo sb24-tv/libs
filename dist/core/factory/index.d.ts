@@ -3,8 +3,8 @@ import { Server, Socket, ExtendedError } from "socket.io";
 import type { IncomingMessage } from "http";
 import type { CorsOptions, CorsOptionsDelegate } from "cors";
 import { CookieSerializeOptions } from "engine.io/build/contrib/types.cookie";
-import { Interceptor } from "../../controller";
 import { Request, Response } from "express";
+import { Interceptor } from "../../interface";
 type Transport = "polling" | "websocket" | "webtransport";
 export interface SocketServerOptions {
     /**
@@ -98,8 +98,6 @@ export type serverOptions = {
     socketOptions?: SocketServerOptions;
     socketMiddleware?: (socket: Socket, next: (err?: ExtendedError) => void) => void;
 };
-export type PathMatcher = string | RegExp;
-export type SocketCallBack<T = any> = (data: T) => void;
 export declare class ServerFactory {
     static createServer(options: serverOptions): CoreApplication;
 }

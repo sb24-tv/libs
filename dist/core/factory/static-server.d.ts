@@ -1,6 +1,7 @@
 import { Options, OptionsJson, OptionsUrlencoded, OptionsText } from 'body-parser';
 import { CorsOptions, CorsOptionsDelegate } from "cors";
-import { PathMatcher, serverOptions } from "./index";
+import { serverOptions } from "./index";
+import { Options as RateOptions } from "express-rate-limit";
 export declare class CoreApplication {
     private options;
     server: import("express-serve-static-core").Express;
@@ -16,7 +17,7 @@ export declare class CoreApplication {
     private excludePrefix;
     private readonly httpServer;
     private socketServer;
-    private skipPaths;
+    private rateLimitOptions;
     constructor(options: serverOptions);
     /**
      * Registers global middleware functions to be used by the application.
@@ -78,7 +79,7 @@ export declare class CoreApplication {
         raw?: Options;
         text?: OptionsText;
     }): void;
-    skipMiddlewareCheck(pathsToSkip: PathMatcher[]): void;
+    setRateLimit(options: Partial<RateOptions>): void;
     private executeInterceptorBefore;
     private executeMiddleware;
     private catch;

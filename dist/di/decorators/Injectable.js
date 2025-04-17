@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Injectable = Injectable;
-const DIContainer_1 = require("../DIContainer");
+const di_container_1 = require("../di-container");
 const controller_1 = require("../../controller");
 function Injectable(options) {
     return (target) => {
         const classMethods = Object.getOwnPropertyNames(target.prototype);
-        DIContainer_1.container.register(target); // register dependencies injection
+        di_container_1.container.register(target); // register dependencies injection
         // register interceptors and middleware if defined
         if (classMethods.includes('intercept') || classMethods.includes('catch')) {
             switch (options === null || options === void 0 ? void 0 : options.type) {
