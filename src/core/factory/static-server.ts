@@ -36,7 +36,7 @@ import { Options as RateOptions } from "express-rate-limit";
 import { validate } from "class-validator";
 import { HttpError } from "../../http-error-exception";
 import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../../interface";
-import { PathMatcher, SocketCallBack } from "../../type";
+import { SocketCallBack } from "../../type";
 import { HttpStatusCode } from "../../enums/http-code";
 import { container } from "../../di";
 type LogType = {
@@ -62,7 +62,7 @@ export class CoreApplication {
 	private excludePrefix: string[] | undefined = [];
 	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
 	private socketServer: ServerSK;
-	private rateLimitOptions: any;
+	private rateLimitOptions: Partial<RateOptions>;
 	
 	constructor(private options: serverOptions) {
 		this.server = express();
@@ -371,9 +371,6 @@ export class CoreApplication {
 			// @ts-ignore
 			this.server.use(bodyParser[key](options[key]));
 		}
-	}
-	
-	public skipMiddlewareCheck(pathsToSkip: PathMatcher[]) {
 	}
 	
 	public setRateLimit(options: Partial<RateOptions>) {
