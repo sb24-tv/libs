@@ -347,10 +347,12 @@ class CoreApplication {
      */
     setBodyParserOptions(options) {
         this.server.use(express_1.default.json());
-        for (let key in options) {
-            // @ts-ignore
-            this.server.use(body_parser_1.default[key](options[key]));
-        }
+        let config;
+        // @ts-ignore
+        for (let key in options)
+            config = body_parser_1.default[key](options[key]);
+        if (config)
+            this.server.use(config);
     }
     setRateLimit(options) {
         this.rateLimitOptions = options;
