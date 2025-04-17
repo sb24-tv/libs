@@ -367,10 +367,10 @@ export class CoreApplication {
 		text?: OptionsText
 	}) {
 		this.server.use(express.json());
-		for (let key in options) {
-			// @ts-ignore
-			this.server.use(bodyParser[key](options[key]));
-		}
+		let config;
+		// @ts-ignore
+		for (let key in options) config = bodyParser[key](options[key]);
+		if(config) this.server.use(config);
 	}
 	
 	public setRateLimit(options: Partial<RateOptions>) {
