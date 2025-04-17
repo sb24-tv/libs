@@ -2,7 +2,7 @@ import express, {
 	NextFunction,
 	Request,
 	Response,
-	Router,
+	Router
 } from 'express';
 import bodyParser, {
 	Options,
@@ -32,13 +32,13 @@ import http,{
 } from "http";
 import { Server as ServerSK, Socket } from "socket.io"
 import { plainToInstance } from "class-transformer";
+import { Options as RateOptions } from "express-rate-limit";
 import { validate } from "class-validator";
 import { HttpError } from "../../http-error-exception";
 import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../../interface";
 import { PathMatcher, SocketCallBack } from "../../type";
 import { HttpStatusCode } from "../../enums/http-code";
 import { container } from "../../di";
-
 type LogType = {
 	BasePath?: string,
 	Event?: string,
@@ -50,7 +50,7 @@ type LogType = {
 export class CoreApplication {
 	
 	public server;
-	private corsOptions: CorsOptions | CorsOptionsDelegate = {}
+	private corsOptions: CorsOptions | CorsOptionsDelegate = {};
 	private controllerClasses: Function[] = prepareController(this.options.controllers);
 	private interceptorsBefore: Interceptor[] = [];
 	private interceptorsAfter: Interceptor[] = [];
@@ -62,6 +62,7 @@ export class CoreApplication {
 	private excludePrefix: string[] | undefined = [];
 	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
 	private socketServer: ServerSK;
+	private rateLimitOptions: any;
 	
 	constructor(private options: serverOptions) {
 		this.server = express();
@@ -375,6 +376,10 @@ export class CoreApplication {
 	public skipMiddlewareCheck(pathsToSkip: PathMatcher[]) {
 	}
 	
+	public setRateLimit(options: Partial<RateOptions>) {
+		this.rateLimitOptions = options;
+	}
+	
 	private executeInterceptorBefore() {
 		if(this.interceptorsBefore.length > 0) {
 			this.interceptorsBefore.forEach((interceptor)=> {
@@ -418,7 +423,7 @@ export class CoreApplication {
 					response,
 					next
 				});
-		
+				
 				if(data !== undefined) {
 					response.status(response.statusCode).json(data);
 				}
@@ -441,7 +446,9 @@ export class CoreApplication {
 		// Event listeners
 		this.appContext.start();
 		const cors = require("cors");
+		const rateLimit = require("express-rate-limit");
 		if (cors) this.server.use(cors(this.corsOptions));
+		if(rateLimit) this.server.use(rateLimit(this.rateLimitOptions));
 		this.executeMiddleware();
 		this.executeInterceptorBefore();
 		await this.registerController(this.controllerClasses, this.providers);
