@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 export * from './di';
 export * from './enums/http-code';
 export * from './controller';
