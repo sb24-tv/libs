@@ -1,1 +1,1 @@
-export declare function Response(): (target: any, propertyKey: string | symbol, parameterIndex: number) => void;
+export declare function Res(): (target: any, propertyKey: string | symbol, parameterIndex: number) => void;

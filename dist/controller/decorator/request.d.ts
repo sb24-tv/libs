@@ -1,1 +1,1 @@
-export declare function Request(): (target: any, propertyKey: string, parameterIndex: number) => void;
+export declare function Req(): (target: any, propertyKey: string, parameterIndex: number) => void;
