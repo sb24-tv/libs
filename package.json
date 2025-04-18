@@ -8,7 +8,8 @@
   "scripts": {
     "build:prod": "tsc --project tsconfig.prod.json",
     "prepublishOnly": "npm run build",
-    "dev": "concurrently \"npx tsc --watch --project tsconfig.dev.json\" \"nodemon\""
+    "dev": "concurrently \"npx tsc --watch --project tsconfig.dev.json\" \"nodemon\"",
+    "test": "ts-node test/simple-test.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.738.0",

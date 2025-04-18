@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import path from "path";
 import {
-	Action, 
+	Action,
 	Context,
 	ErrorInterceptor,
 	Injectable,
@@ -10,20 +10,22 @@ import {
 	CoreMiddleware
 } from "../src";
 import dotenv from "dotenv";
+
 dotenv.config();
-import { Server } from "socket.io";
+import {Server} from "socket.io";
 import {
 	NextFunction,
 	Request,
 	Response
 } from "express";
+
 @Injectable()
-class GlobalErrorInterceptor implements ErrorInterceptor  {
+class GlobalErrorInterceptor implements ErrorInterceptor {
 	catch({error}: Action) {
 		const status = error.statusCode || 500;
-		console.error(`[Error] ${error.message}`,error.stack);
-		console.error('detail',error.details);
-
+		console.error(`[Error] ${error.message}`, error.stack);
+		console.error('detail', error.details);
+		
 		const filteredStack = error.stack
 			? error.stack
 			.split('\n')
@@ -34,28 +36,30 @@ class GlobalErrorInterceptor implements ErrorInterceptor  {
 			status,
 			message: error.message || 'Internal Server Error',
 			stack: filteredStack,
-			details: Array.isArray(error.details) ? error.details.map(function (detail: any) { return detail }) : error.details
+			details: Array.isArray(error.details) ? error.details.map(function (detail: any) {
+				return detail
+			}) : error.details
 		};
 	}
 }
 
 @Injectable()
 export class Service {
-
+	
 	create() {
 		return "Service created";
 	}
-
+	
 	update(_data: any) {
-       return "Service updated";
-    }
-
+		return "Service updated";
+	}
+	
 }
 
 @Injectable({type: 'AFTER'})
 export class NotFoundInterceptor implements Interceptor {
-
-	intercept(context: Action){
+	
+	intercept(context: Action) {
 		return {
 			message: 'Route Not Found',
 			method: context.request.method,
@@ -65,10 +69,11 @@ export class NotFoundInterceptor implements Interceptor {
 		};
 	}
 }
+
 @Injectable()
-export class ResponseTransformerInterceptor implements Interceptor  {
+export class ResponseTransformerInterceptor implements Interceptor {
 	
-	intercept(context: Context,data: any){
+	intercept(context: Context, data: any) {
 		const before = Date.now();
 		return {
 			data,
@@ -93,8 +98,8 @@ const app = ServerFactory.createServer({
 		path.join(__dirname, './controllers/**/*.{js,ts}')
 	],
 	providers: [
-        Service,
-    ],
+		Service,
+	],
 	enableLogging: true,
 	SocketIO: Server,
 	socketMiddleware: (socket, next) => {
