@@ -98,11 +98,23 @@ export class CoreApplication {
 		});
 	}
 	
-	public get<T>(target: ProviderTarget<T>){
+	/**
+	 * Retrieves an instance of the given provider target from the container.
+	 *
+	 * @param {ProviderTarget<T>} target - The provider target or token used to resolve the instance.
+	 * @return {T} The resolved instance associated with the given provider target.
+	 */
+	public get<T>(target: ProviderTarget<T>): T{
 		return container.resolve<T>(target);
 	}
 	
-	public enableCors(options: CorsOptions | CorsOptionsDelegate) {
+	/**
+	 * Enables Cross-Origin Resource Sharing (CORS) for the server using the specified options.
+	 *
+	 * @param {CorsOptions | CorsOptionsDelegate} options - The configuration object or function used to set up CORS options.
+	 * @return {void} This method does not return a value.
+	 */
+	public enableCors(options: CorsOptions | CorsOptionsDelegate): void {
 		this.corsOptions = options;
 	}
 	
@@ -385,7 +397,13 @@ export class CoreApplication {
 		if(config) this.server.use(config);
 	}
 	
-	public setRateLimit(options: Partial<RateOptions>) {
+	/**
+	 * Sets the rate limit configuration for the instance.
+	 *
+	 * @param {Partial<RateOptions>} options - An object containing partial properties of the rate options configuration.
+	 * @return {void} This method does not return a value.
+	 */
+	public setRateLimit(options: Partial<RateOptions>): void {
 		this.rateLimitOptions = options;
 	}
 	
