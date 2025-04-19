@@ -36,9 +36,10 @@ import { Options as RateOptions } from "express-rate-limit";
 import { validate } from "class-validator";
 import { HttpError } from "../../http-error-exception";
 import { CoreMiddleware, ErrorInterceptor, Interceptor } from "../../interface";
-import { SocketCallBack } from "../../type";
+import {ProviderTarget, SocketCallBack} from "../../type";
 import { HttpStatusCode } from "../../enums/http-code";
 import { container } from "../../di";
+
 type LogType = {
 	BasePath?: string,
 	Event?: string,
@@ -51,25 +52,32 @@ export class CoreApplication {
 	
 	public server;
 	private corsOptions: CorsOptions | CorsOptionsDelegate = {};
-	private controllerClasses: Function[] = prepareController(this.options.controllers);
 	private interceptorsBefore: Interceptor[] = [];
 	private interceptorsAfter: Interceptor[] = [];
 	private interceptorError: ErrorInterceptor[] = [];
-	private middlewares: CoreMiddleware[] = [];
-	private providers: Function[] | undefined = this.options.providers;
-	private readonly appContext: AppContext;
-	private prefix?: string;
-	private excludePrefix: string[] | undefined = [];
-	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
 	private socketServer: ServerSK;
 	private rateLimitOptions: Partial<RateOptions>;
+	private middlewares: CoreMiddleware[] = [];
+	private prefix?: string;
+	private excludePrefix?: string[] = [];
+	private readonly controllerClasses: Function[];
+	private readonly httpServer: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
+	private readonly providers?: Function[];
+	private readonly appContext: AppContext;
 	
 	constructor(private options: serverOptions) {
+		const {
+			SocketIO,
+			socketOptions,
+			providers,
+			controllers
+		} = this.options;
+		this.controllerClasses = prepareController(controllers);
 		this.server = express();
+		this.providers = providers;
 		this.appContext = new AppContext();
 		this.httpServer = http.createServer(this.server);
-		if (this.options.SocketIO) {
-			const { SocketIO, socketOptions } = this.options;
+		if (SocketIO) {
 			this.socketServer = new SocketIO(this.httpServer, socketOptions);
 		}
 	}
@@ -88,6 +96,10 @@ export class CoreApplication {
 				this.middlewares.push(middleware);
 			}
 		});
+	}
+	
+	public get<T>(target: ProviderTarget<T>){
+		return container.resolve<T>(target);
 	}
 	
 	public enableCors(options: CorsOptions | CorsOptionsDelegate) {

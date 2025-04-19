@@ -1,3 +1,5 @@
+import {ProviderTarget} from "../type";
+
 class DiContainer {
 	private static instance: DiContainer;
 	private services = new Map(); // Maps classes to their implementations
@@ -10,11 +12,11 @@ class DiContainer {
 		return DiContainer.instance;
 	}
 	
-	register<T>(target: { new (...args: any[]): T }): void {
+	register<T>(target: ProviderTarget<T>): void {
 		this.services.set(target, target);
 	}
 	
-	resolve<T>(target: { new(...args: any[]): T }): T {
+	resolve<T>(target: ProviderTarget<T>): T {
 		// Check if an instance already exists
 		if (this.instances.has(target)) {
 			return this.instances.get(target);

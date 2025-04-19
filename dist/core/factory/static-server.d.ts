@@ -2,22 +2,23 @@ import { Options, OptionsJson, OptionsUrlencoded, OptionsText } from 'body-parse
 import { CorsOptions, CorsOptionsDelegate } from "cors";
 import { serverOptions } from "./index";
 import { Options as RateOptions } from "express-rate-limit";
+import { ProviderTarget } from "../../type";
 export declare class CoreApplication {
     private options;
     server: import("express-serve-static-core").Express;
     private corsOptions;
-    private controllerClasses;
     private interceptorsBefore;
     private interceptorsAfter;
     private interceptorError;
-    private middlewares;
-    private providers;
-    private readonly appContext;
-    private prefix?;
-    private excludePrefix;
-    private readonly httpServer;
     private socketServer;
     private rateLimitOptions;
+    private middlewares;
+    private prefix?;
+    private excludePrefix?;
+    private readonly controllerClasses;
+    private readonly httpServer;
+    private readonly providers?;
+    private readonly appContext;
     constructor(options: serverOptions);
     /**
      * Registers global middleware functions to be used by the application.
@@ -27,6 +28,7 @@ export declare class CoreApplication {
      * Each middleware should be a class that can be instantiated.
      */
     useGlobalMiddleware(...middlewares: any[]): void;
+    get<T>(target: ProviderTarget<T>): T;
     enableCors(options: CorsOptions | CorsOptionsDelegate): void;
     /**
      * Sets a global prefix for all routes in the application.

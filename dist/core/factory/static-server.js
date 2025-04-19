@@ -60,18 +60,18 @@ class CoreApplication {
     constructor(options) {
         this.options = options;
         this.corsOptions = {};
-        this.controllerClasses = (0, controller_1.prepareController)(this.options.controllers);
         this.interceptorsBefore = [];
         this.interceptorsAfter = [];
         this.interceptorError = [];
         this.middlewares = [];
-        this.providers = this.options.providers;
         this.excludePrefix = [];
+        const { SocketIO, socketOptions, providers, controllers } = this.options;
+        this.controllerClasses = (0, controller_1.prepareController)(controllers);
         this.server = (0, express_1.default)();
+        this.providers = providers;
         this.appContext = new app_context_1.default();
         this.httpServer = http_1.default.createServer(this.server);
-        if (this.options.SocketIO) {
-            const { SocketIO, socketOptions } = this.options;
+        if (SocketIO) {
             this.socketServer = new SocketIO(this.httpServer, socketOptions);
         }
     }
@@ -89,6 +89,9 @@ class CoreApplication {
                 this.middlewares.push(middleware);
             }
         });
+    }
+    get(target) {
+        return di_1.container.resolve(target);
     }
     enableCors(options) {
         this.corsOptions = options;
