@@ -28,7 +28,19 @@ export declare class CoreApplication {
      * Each middleware should be a class that can be instantiated.
      */
     useGlobalMiddleware(...middlewares: any[]): void;
+    /**
+     * Retrieves an instance of the given provider target from the container.
+     *
+     * @param {ProviderTarget<T>} target - The provider target or token used to resolve the instance.
+     * @return {T} The resolved instance associated with the given provider target.
+     */
     get<T>(target: ProviderTarget<T>): T;
+    /**
+     * Enables Cross-Origin Resource Sharing (CORS) for the server using the specified options.
+     *
+     * @param {CorsOptions | CorsOptionsDelegate} options - The configuration object or function used to set up CORS options.
+     * @return {void} This method does not return a value.
+     */
     enableCors(options: CorsOptions | CorsOptionsDelegate): void;
     /**
      * Sets a global prefix for all routes in the application.
@@ -81,6 +93,12 @@ export declare class CoreApplication {
         raw?: Options;
         text?: OptionsText;
     }): void;
+    /**
+     * Sets the rate limit configuration for the instance.
+     *
+     * @param {Partial<RateOptions>} options - An object containing partial properties of the rate options configuration.
+     * @return {void} This method does not return a value.
+     */
     setRateLimit(options: Partial<RateOptions>): void;
     private executeInterceptorBefore;
     private executeMiddleware;
