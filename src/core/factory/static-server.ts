@@ -56,7 +56,7 @@ export class CoreApplication {
 	private interceptorsAfter: Interceptor[] = [];
 	private interceptorError: ErrorInterceptor[] = [];
 	private socketServer: ServerSK;
-	private rateLimitOptions: Partial<RateOptions>;
+	private rateLimitOptions?: Partial<RateOptions>;
 	private middlewares: CoreMiddleware[] = [];
 	private prefix?: string;
 	private excludePrefix?: string[] = [];
@@ -475,7 +475,7 @@ export class CoreApplication {
 		const cors = require("cors");
 		const rateLimit = require("express-rate-limit");
 		if (cors) this.server.use(cors(this.corsOptions));
-		if(rateLimit) this.server.use(rateLimit(this.rateLimitOptions));
+		if(rateLimit && this.rateLimitOptions) this.server.use(rateLimit(this.rateLimitOptions));
 		this.executeMiddleware();
 		this.executeInterceptorBefore();
 		await this.registerController(this.controllerClasses, this.providers);

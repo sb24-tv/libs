@@ -11,7 +11,7 @@ export declare class CoreApplication {
     private interceptorsAfter;
     private interceptorError;
     private socketServer;
-    private rateLimitOptions;
+    private rateLimitOptions?;
     private middlewares;
     private prefix?;
     private excludePrefix?;

@@ -112,9 +112,6 @@ const app = ServerFactory.createServer({
 	}
 });
 
-const service = app.get(Service);
-console.log(service.create())
-
 app.enableCors({
 	credentials: true,
 	origin: '*'

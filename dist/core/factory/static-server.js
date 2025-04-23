@@ -433,7 +433,7 @@ class CoreApplication {
             const rateLimit = require("express-rate-limit");
             if (cors)
                 this.server.use(cors(this.corsOptions));
-            if (rateLimit)
+            if (rateLimit && this.rateLimitOptions)
                 this.server.use(rateLimit(this.rateLimitOptions));
             this.executeMiddleware();
             this.executeInterceptorBefore();
