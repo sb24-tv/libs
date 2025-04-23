@@ -5,7 +5,7 @@ import {
 	SocketBody,
 	SocketResponse,
 	SocketCallBack,
-	SocketInstance, Inject
+	SocketInstance, Inject, SocketData
 } from "../../src";
 import { Socket } from "socket.io";
 import { UserDto } from "./user/dto/user-dto";
@@ -20,16 +20,23 @@ export class UserSocketController implements SocketEventAdapter {
 	private serviceV2: Service;
 	
     @SocketEvent('confirm')
-    handleConfirm(@SocketBody() data: UserDto, @SocketInstance() socket: Socket): void {
+    handleConfirm(
+		@SocketBody() data: any,
+		@SocketInstance() socket: Socket,
+		@SocketResponse() res: SocketCallBack
+    ): void {
         console.log('Order received',{data});
-        socket.emit('cook',data);
+	    res({
+		    status: 200,
+		    data,
+	    })
     }
 
     @SocketEvent('pick')
     handlePickOder(
-		@SocketBody() data: UserDto,
-		@SocketResponse() res: SocketCallBack) {
-        console.log('pick food',data);
+		@SocketData() data:any,
+		@SocketResponse() res: SocketCallBack
+    ) {
 	    res({
 			status: 200,
 		    data,
@@ -37,8 +44,8 @@ export class UserSocketController implements SocketEventAdapter {
     }
 
     onConnect(socket: Socket): void {
-        console.log('dd',this.service.create());
-        console.log('gg',this.serviceV2.create());
+        // console.log('dd',this.service.create());
+        // console.log('gg',this.serviceV2.create());
     }
 
     onDisconnect(socket: Socket,reason:string): void {

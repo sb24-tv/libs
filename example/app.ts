@@ -103,6 +103,7 @@ const app = ServerFactory.createServer({
 	enableLogging: true,
 	SocketIO: Server,
 	socketMiddleware: (socket, next) => {
+		socket.data.user = "ME";
 		next();
 	},
 	socketOptions: {

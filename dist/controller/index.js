@@ -28,6 +28,7 @@ __exportStar(require("./decorator/middleware"), exports);
 __exportStar(require("./decorator/file-upload"), exports);
 __exportStar(require("./decorator/socket-response"), exports);
 __exportStar(require("./decorator/socket-body"), exports);
+__exportStar(require("./decorator/socket-data"), exports);
 __exportStar(require("./decorator/socket-instance"), exports);
 const Get = (path) => (0, util_1.HttpMethod)('get', path);
 exports.Get = Get;

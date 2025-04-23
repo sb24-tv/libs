@@ -21,5 +21,6 @@ declare const DECORATOR_KEY: {
     readonly SOCKET_INSTANCE: symbol;
     readonly SOCKET_CALLBACK: symbol;
     readonly SOCKET_DATA: symbol;
+    readonly SOCKET_BODY: symbol;
 };
 export { DECORATOR_KEY };

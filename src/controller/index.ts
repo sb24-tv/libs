@@ -11,6 +11,7 @@ export * from './decorator/middleware';
 export * from './decorator/file-upload';
 export * from './decorator/socket-response';
 export * from './decorator/socket-body';
+export * from './decorator/socket-data';
 export * from './decorator/socket-instance';
 
 export const Get = (path?: string) => HttpMethod('get', path);

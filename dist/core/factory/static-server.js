@@ -300,6 +300,7 @@ class CoreApplication {
                                 const prototype = Object.getPrototypeOf(subscribers.instance);
                                 const socketIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_INSTANCE, controllerInstance, methodName);
                                 const callBackIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_CALLBACK, controllerInstance, methodName);
+                                const bodyIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_BODY, controllerInstance, methodName);
                                 const dataIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_DATA, controllerInstance, methodName);
                                 const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName);
                                 const args = [];
@@ -307,9 +308,11 @@ class CoreApplication {
                                     try {
                                         if (socketIndex !== undefined)
                                             args[socketIndex] = orderNamespace;
-                                        if (callBackIndex !== undefined)
+                                        if (callBackIndex !== undefined && callback)
                                             args[callBackIndex] = callback;
-                                        if (dataIndex !== undefined) {
+                                        if (dataIndex !== undefined)
+                                            args[dataIndex] = socket.data;
+                                        if (bodyIndex !== undefined) {
                                             const ResBodyType = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
                                             const ResBodyTypeOptions = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance, methodName);
                                             if (ResBodyType) {
@@ -321,12 +324,13 @@ class CoreApplication {
                                                     return callback(error);
                                                 }
                                             }
-                                            args[dataIndex] = data;
+                                            args[bodyIndex] = data;
                                         }
                                         yield subscribers.instance[methodName](...args);
                                     }
                                     catch (e) {
-                                        return callback(e);
+                                        if (callback)
+                                            callback(e);
                                     }
                                 }));
                             });

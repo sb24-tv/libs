@@ -9,6 +9,7 @@ export * from './decorator/middleware';
 export * from './decorator/file-upload';
 export * from './decorator/socket-response';
 export * from './decorator/socket-body';
+export * from './decorator/socket-data';
 export * from './decorator/socket-instance';
 export declare const Get: (path?: string) => MethodDecorator;
 export declare const Post: (path?: string) => MethodDecorator;
