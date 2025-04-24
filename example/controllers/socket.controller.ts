@@ -5,24 +5,17 @@ import {
 	SocketBody,
 	SocketResponse,
 	SocketCallBack,
-	SocketInstance, Inject, SocketData
+	SocketData
 } from "../../src";
 import { Socket } from "socket.io";
 import { UserDto } from "./user/dto/user-dto";
-import { Service } from "../app";
 
 @SocketController('/waiter')
 export class UserSocketController implements SocketEventAdapter {
 	
-	constructor(private service: Service) {}
-	
-	@Inject()
-	private serviceV2: Service;
-	
     @SocketEvent('confirm')
     handleConfirm(
-		@SocketBody() data: any,
-		@SocketInstance() socket: Socket,
+		@SocketBody() data: UserDto,
 		@SocketResponse() res: SocketCallBack
     ): void {
         console.log('Order received',{data});

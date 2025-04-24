@@ -328,13 +328,14 @@ export class CoreApplication {
 							const callBackIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_CALLBACK, controllerInstance, methodName);
 							const bodyIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_BODY, controllerInstance, methodName);
 							const dataIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_DATA, controllerInstance, methodName);
+							const keyDataIndex = Reflect.getMetadata(DECORATOR_KEY.SOCKET_DATA_KEY, controllerInstance, methodName);
 							const event = Reflect.getMetadata(DECORATOR_KEY.ROUTE_PATH, prototype, methodName);
 							const args: any[] = [];
 							socket.on(event, async <T>(data: T, callback: SocketCallBack) => {
 								try {
 									if (socketIndex !== undefined) args[socketIndex] = orderNamespace;
 									if (callBackIndex !== undefined && callback) args[callBackIndex] = callback;
-									if (dataIndex !== undefined) args[dataIndex] = socket.data;
+									if (dataIndex !== undefined) args[dataIndex] = keyDataIndex ? socket.data[keyDataIndex] : data;
 									if (bodyIndex !== undefined) {
 										const ResBodyType = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
 										const ResBodyTypeOptions = Reflect.getMetadata(DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance, methodName);

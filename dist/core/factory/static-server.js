@@ -302,6 +302,7 @@ class CoreApplication {
                                 const callBackIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_CALLBACK, controllerInstance, methodName);
                                 const bodyIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_BODY, controllerInstance, methodName);
                                 const dataIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_DATA, controllerInstance, methodName);
+                                const keyDataIndex = Reflect.getMetadata(controller_1.DECORATOR_KEY.SOCKET_DATA_KEY, controllerInstance, methodName);
                                 const event = Reflect.getMetadata(controller_1.DECORATOR_KEY.ROUTE_PATH, prototype, methodName);
                                 const args = [];
                                 socket.on(event, (data, callback) => __awaiter(this, void 0, void 0, function* () {
@@ -311,7 +312,7 @@ class CoreApplication {
                                         if (callBackIndex !== undefined && callback)
                                             args[callBackIndex] = callback;
                                         if (dataIndex !== undefined)
-                                            args[dataIndex] = socket.data;
+                                            args[dataIndex] = keyDataIndex ? socket.data[keyDataIndex] : data;
                                         if (bodyIndex !== undefined) {
                                             const ResBodyType = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_TYPE, controllerInstance, methodName);
                                             const ResBodyTypeOptions = Reflect.getMetadata(controller_1.DECORATOR_KEY.REQUEST_BODY_OPTIONS, controllerInstance, methodName);
